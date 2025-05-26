@@ -96,9 +96,37 @@ public class TransactionServiceImpl implements TransactionService {
         TransactionReceipt receipt = getSuccessfulTransactionReceipt(txHash);
 
         List<GifticonNFT.GiftPendingEventResponse> events = GifticonNFT.getGiftPendingEvents(receipt);
+        log.info("[TransactionService] getGiftPendingEvents : {}", events);
+        if (events.isEmpty()) {
+            log.error("[TransactionService] No gift pending events found for transaction: {}", txHash);
+            throw new ArticleException(ArticleErrorCode.TRANSACTION_EXCEPTION);
+        }
+
+        return events;
+    }
+
+    @Override
+    public List<GifticonNFT.GiftedEventResponse> getGiftedEventByTxHash(String txHash) {
+        TransactionReceipt receipt = getSuccessfulTransactionReceipt(txHash);
+
+        List<GifticonNFT.GiftedEventResponse> events = GifticonNFT.getGiftedEvents(receipt);
         log.info("[TransactionService] getGiftedEvents : {}", events);
         if (events.isEmpty()) {
             log.error("[TransactionService] No gift events found for transaction: {}", txHash);
+            throw new ArticleException(ArticleErrorCode.TRANSACTION_EXCEPTION);
+        }
+
+        return events;
+    }
+
+    @Override
+    public List<GifticonNFT.RedeemedEventResponse> getRedeemedEventByTxHash(String txHash) {
+        TransactionReceipt receipt = getSuccessfulTransactionReceipt(txHash);
+
+        List<GifticonNFT.RedeemedEventResponse> events = GifticonNFT.getRedeemedEvents(receipt);
+        log.info("[TransactionService] getRedeemedEvents : {}", events);
+        if (events.isEmpty()) {
+            log.error("[TransactionService] No redeem events found for transaction: {}", txHash);
             throw new ArticleException(ArticleErrorCode.TRANSACTION_EXCEPTION);
         }
 
@@ -173,7 +201,27 @@ public class TransactionServiceImpl implements TransactionService {
                 GifticonNFT.GiftPendingEventResponse event = GifticonNFT.getGiftPendingEventFromLog(logg);
                 events.add(event);
             } catch (NullPointerException e) {
-                log.error("이 로그는 ListedForSale 이벤트가 아닙니다 (NPE 캐치됨)");
+                log.error("이 로그는 GiftPendingEvent가 아닙니다 (NPE 캐치됨)");
+            }
+        }
+
+        return events;
+    }
+
+    @Override
+    public List<GifticonNFT.GiftedEventResponse> getGiftedEventByBlockNumber(BigInteger blockNumber) {
+        List<org.web3j.protocol.core.methods.response.Log> logs = getResponseLogs(blockNumber);
+
+        List<GifticonNFT.GiftedEventResponse> events = new ArrayList<>();
+
+        for (org.web3j.protocol.core.methods.response.Log logg : logs) {
+            log.info("로그 내용: address={}, topics={}, data={}", logg.getAddress(), logg.getTopics(), logg.getData());
+
+            try {
+                GifticonNFT.GiftedEventResponse event = GifticonNFT.getGiftedEventFromLog(logg);
+                events.add(event);
+            } catch (NullPointerException e) {
+                log.error("이 로그는 GiftedEvent 이벤트가 아닙니다 (NPE 캐치됨)");
             }
         }
 

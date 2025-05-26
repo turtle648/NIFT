@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Repeat } from "lucide-react"
 import type { CardElement } from "@/types/gift-card"
+import Image from "next/image"
 
 interface CardPreviewProps {
   cardData: any
@@ -94,16 +95,15 @@ export function CardPreview({ cardData, className }: CardPreviewProps) {
             {/* 배경이 이미지 데이터인 경우 이미지로 표시 */}
             {frontTemplate.background && frontTemplate.background.startsWith("data:image/") && (
               <div className="absolute inset-0 z-0">
-                <img
-                  src={frontTemplate.background || "/placeholder.svg"}
+                <Image
+                  src={frontTemplate.background}
                   alt="Background"
-                  className="w-full h-full object-cover"
-                  crossOrigin="anonymous"
-                  loading="lazy"
-                  decoding="async"
+                  fill
+                  className="object-cover"
                   onError={(e) => {
                     console.error("배경 이미지 로딩 오류")
-                    ;(e.target as HTMLImageElement).style.display = "none"
+                    const target = e.target as HTMLImageElement
+                    target.style.display = "none"
                   }}
                 />
               </div>
@@ -142,17 +142,15 @@ export function CardPreview({ cardData, className }: CardPreviewProps) {
 
                 {element.type === "image" && element.src && (
                   <div className="w-full h-full flex items-center justify-center">
-                    <img
+                    <Image
                       src={element.src || "/placeholder.svg"}
                       alt="User uploaded"
-                      className="w-full h-full object-contain"
-                      style={{ maxWidth: "100%", maxHeight: "100%" }}
-                      crossOrigin="anonymous"
-                      loading="lazy"
-                      decoding="async"
+                      fill
+                      className="object-contain"
                       onError={(e) => {
                         console.error("이미지 로딩 오류:", element.id)
-                        ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=100&width=100&text=이미지+오류"
+                        const target = e.target as HTMLImageElement
+                        target.src = "/placeholder.svg?height=100&width=100&text=이미지+오류"
                       }}
                     />
                   </div>
@@ -170,13 +168,11 @@ export function CardPreview({ cardData, className }: CardPreviewProps) {
                         {element.src.split("text=")[1].replace(/%20/g, " ")}
                       </div>
                     ) : (
-                      <img
+                      <Image
                         src={element.src || "/placeholder.svg"}
                         alt="Sticker"
-                        className="w-full h-full object-contain"
-                        crossOrigin="anonymous"
-                        loading="lazy"
-                        decoding="async"
+                        fill
+                        className="object-contain"
                       />
                     )}
                   </div>
@@ -230,16 +226,15 @@ export function CardPreview({ cardData, className }: CardPreviewProps) {
                   {element.type === "image" && element.src && (
                     <div className="w-full h-full flex items-center justify-center">
                       {element.src.startsWith("data:image/") ? (
-                        <img
+                        <Image
                           src={element.src || "/placeholder.svg"}
                           alt="User uploaded"
-                          className="w-full h-full object-contain"
-                          style={{ maxWidth: "100%", maxHeight: "100%" }}
-                          crossOrigin="anonymous"
+                          fill
+                          className="object-contain"
                           onError={(e) => {
-                            console.error("이미지 로딩 오류:", e)
-                            ;(e.target as HTMLImageElement).src =
-                              "/placeholder.svg?height=100&width=100&text=이미지+오류"
+                            console.error("이미지 로딩 오류:", element.id)
+                            const target = e.target as HTMLImageElement
+                            target.src = "/placeholder.svg?height=100&width=100&text=이미지+오류"
                           }}
                         />
                       ) : (
@@ -262,10 +257,11 @@ export function CardPreview({ cardData, className }: CardPreviewProps) {
                           {element.src.split("text=")[1].replace(/%20/g, " ")}
                         </div>
                       ) : (
-                        <img
+                        <Image
                           src={element.src || "/placeholder.svg"}
                           alt="Sticker"
-                          className="w-full h-full object-contain"
+                          fill
+                          className="object-contain"
                         />
                       )}
                     </div>

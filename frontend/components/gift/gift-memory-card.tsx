@@ -1,19 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useGiftCardMobile } from "@/hooks/use-giftcard-mobile"
 
+const CARD_WIDTH = 400
+const CARD_HEIGHT = 600
+
 interface GiftMemoryCardProps {
   cardData?: {
-    frontTemplate: {
-      background: string
-    }
-    backTemplate: {
-      background: string
-    }
+    frontTemplate: { background: string }
+    backTemplate: { background: string }
     frontElements: any[]
     backElements: any[]
   }
@@ -33,71 +32,44 @@ export function GiftMemoryCard({
   isDetailView = false,
 }: GiftMemoryCardProps) {
   const [isFlipped, setIsFlipped] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
   const isGiftCardMobile = useGiftCardMobile()
 
-  // 카드 뒤집기 핸들러
-  const handleFlip = () => {
-    if (isAccepted) {
-      setIsFlipped(!isFlipped)
+  useEffect(() => {
+    const resize = () => {
+      if (containerRef.current && !isDetailView) {
+        const { clientWidth } = containerRef.current
+        setScale(clientWidth / CARD_WIDTH)
+      } else {
+        setScale(1)
+      }
     }
-  }
+    resize()
+    window.addEventListener("resize", resize)
+    return () => window.removeEventListener("resize", resize)
+  }, [isDetailView])
 
-  // 카드 요소 렌더링 함수 - 간소화된 버전
-  const renderSimplifiedCard = (elements: any[], isBackside = false) => {
-    if (!elements || elements.length === 0) return null
-
-    // 텍스트 요소만 필터링
-    const textElements = elements.filter((el) => el.type === "text")
-
-    // 이미지 요소만 필터링
-    const imageElements = elements.filter((el) => el.type === "image" && el.src)
-
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center p-4">
-        {/* 텍스트 요소들 */}
-        {textElements.map((element, index) => (
-          <div
-            key={element.id || index}
-            className="text-center mb-2"
-            style={{
-              fontFamily: element.fontFamily || "inherit",
-              zIndex: element.zIndex || 1,
-            }}
-          >
-            <span className="text-lg font-medium">{element.content}</span>
-          </div>
-        ))}
-
-        {/* 이미지 요소들 */}
-        {imageElements.length > 0 && (
-          <div className="flex justify-center mt-2">
-            {imageElements.map((element, index) => (
-              <div key={element.id || `img-${index}`} className="mx-1">
-                <Image
-                  src={element.src || "/placeholder.svg"}
-                  alt="Card element"
-                  width={80}
-                  height={80}
-                  className="object-contain"
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 뒷면인 경우 뒤집기 힌트 */}
-        {isBackside && showFlipHint && <div className="mt-4 text-xs text-gray-500">클릭하여 앞면 보기</div>}
-      </div>
-    )
+  const handleFlip = () => {
+    if (isAccepted) setIsFlipped(!isFlipped)
   }
 
   return (
     <div
-      className={cn("relative w-full h-full rounded-lg overflow-hidden cursor-pointer", className)}
+      ref={containerRef}
+      className={cn(
+        "relative rounded-lg overflow-hidden cursor-pointer",
+        isDetailView ? "" : "w-full aspect-[2/3] min-w-[150px] min-h-[250px]",
+        className
+      )}
       onClick={handleFlip}
+      style={
+        isDetailView
+          ? { width: `${CARD_WIDTH}px`, height: `${CARD_HEIGHT}px` }
+          : undefined
+      }
     >
       {isAccepted ? (
-        // 수락된 선물 - 카드 표시
         <div
           className="w-full h-full transition-transform duration-500"
           style={{
@@ -105,51 +77,35 @@ export function GiftMemoryCard({
             transformStyle: "preserve-3d",
           }}
         >
-          {/* 앞면 */}
-          <div
-            className="absolute inset-0 backface-hidden"
-            style={{
-              background: cardData?.frontTemplate.background || "white",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          >
-            {cardData?.frontElements && renderSimplifiedCard(cardData.frontElements)}
-          </div>
-
-          {/* 뒷면 */}
-          <div
-            className="absolute inset-0 backface-hidden"
-            style={{
-              background: cardData?.backTemplate.background || "white",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              transform: "rotateY(180deg)",
-            }}
-          >
-            {cardData?.backElements && renderSimplifiedCard(cardData.backElements, true)}
-          </div>
+          <CardFace
+            background={cardData?.frontTemplate.background}
+            elements={cardData?.frontElements || []}
+            flipped={false}
+            scale={scale}
+          />
+          <CardFace
+            background={cardData?.backTemplate.background}
+            elements={cardData?.backElements || []}
+            flipped={true}
+            scale={scale}
+          />
         </div>
       ) : (
-        // 미수락 선물 - 선물 상자 표시
-        <div className="w-full h-full bg-blue-50 flex items-center justify-center">
+        <div className="relative w-full h-full overflow-hidden">
+        <Image
+          src="/gift-box.png"
+          alt="Gift box"
+          fill
+          className="object-cover" // object-contain → object-cover 로 변경
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className="flex justify-center mb-2">
-              <Image
-                src="/placeholder.svg?height=80&width=80&text=🎁"
-                alt="Gift box"
-                width={80}
-                height={80}
-                className="object-contain"
-              />
-            </div>
             {onAccept && (
               <Button
                 size="sm"
-                className="mt-2"
                 onClick={(e) => {
-                  e.stopPropagation()
-                  onAccept()
+                  e.stopPropagation();
+                  onAccept();
                 }}
               >
                 선물 수락하기
@@ -157,16 +113,16 @@ export function GiftMemoryCard({
             )}
           </div>
         </div>
+      </div>
+      
       )}
 
-      {/* 카드 뒤집기 힌트 (수락된 경우만) */}
       {isAccepted && showFlipHint && !isFlipped && (
         <div className="absolute bottom-2 right-2 text-xs text-gray-500 bg-white/70 px-2 py-1 rounded-full">
           클릭하여 뒷면 보기
         </div>
       )}
 
-      {/* 스타일 */}
       <style jsx global>{`
         .backface-hidden {
           backface-visibility: hidden;
@@ -177,3 +133,117 @@ export function GiftMemoryCard({
   )
 }
 
+function CardFace({
+  background,
+  elements,
+  flipped,
+  scale,
+}: {
+  background?: string
+  elements: any[]
+  flipped: boolean
+  scale: number
+}) {
+  return (
+    <div
+      className="absolute inset-0 backface-hidden"
+      style={{
+        transform: flipped ? "rotateY(180deg)" : "none",
+      }}
+    >
+      <div
+        className="relative"
+        style={{
+          width: `${CARD_WIDTH}px`,
+          height: `${CARD_HEIGHT}px`,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+      >
+        {background?.startsWith("data:image") ? (
+          <Image
+            src={background}
+            alt="card-bg"
+            fill
+            className="object-cover object-center"
+            style={{ zIndex: 0 }}
+          />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{
+              background,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+        )}
+        {renderCardElements(elements, scale)}
+      </div>
+    </div>
+  )
+}
+
+function renderCardElements(elements: any[], scale: number) {
+  return elements.map((el) => {
+    const style = {
+      position: "absolute" as const,
+      left: `${el.x * scale}px`,
+      top: `${el.y * scale}px`,
+      width: `${el.width * scale}px`,
+      height: `${el.height * scale}px`,
+      transform: `rotate(${el.rotation}deg)`,
+      zIndex: el.zIndex,
+      fontFamily: el.fontFamily || "inherit",
+    }
+
+    if (el.type === "text") {
+      return (
+        <div key={el.id} style={{ ...style, fontSize: `${16 * scale}px` }}>
+          {el.content}
+        </div>
+      )
+    }
+
+    if (el.type === "sticker") {
+      const isEmoji = el.src?.includes("text=")
+      if (isEmoji) {
+        const emojiChar = decodeURIComponent(el.src.split("text=")[1] || "")
+        return (
+          <div key={el.id} style={{ ...style, fontSize: `${28 * scale}px` }}>
+            {emojiChar}
+          </div>
+        )
+      } else {
+        const blobUrl = getBlobUrlIfBase64(el.src)
+        return <img key={el.id} src={blobUrl || el.src} alt="Sticker" style={style} />
+      }
+    }
+
+    if (el.type === "image" && el.src) {
+      const blobUrl = getBlobUrlIfBase64(el.src)
+      return <img key={el.id} src={blobUrl || el.src} alt="Image" style={style} />
+    }
+
+    return null
+  })
+}
+
+function getBlobUrlIfBase64(src?: string): string | null {
+  if (!src || !src.startsWith("data:image")) return null
+  try {
+    const mime = src.substring(src.indexOf(":") + 1, src.indexOf(";"))
+    const base64Data = src.split(",")[1]
+    const byteCharacters = atob(base64Data)
+    const byteArrays = []
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArrays.push(byteCharacters.charCodeAt(i))
+    }
+    const byteArray = new Uint8Array(byteArrays)
+    const blob = new Blob([byteArray], { type: mime })
+    return URL.createObjectURL(blob)
+  } catch (e) {
+    console.error("Base64 변환 실패:", e)
+    return null
+  }
+}

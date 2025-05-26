@@ -21,9 +21,9 @@ COPY .env .env
 
 # NODE_ENV에 따라 build 분기
 RUN if [ "$BUILD_MODE" = "development" ]; then \
-    npm run build --verbose; \
+    npm run build --verbose && rm -f .env; \
   else \
-    npm run build; \
+    npm run build && rm -f .env; \
   fi
 
 # 컨테이너 실행 시 Next.js 실행

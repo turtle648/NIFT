@@ -33,6 +33,7 @@ export default function ProductCard({
             src={image || "/placeholder.svg?height=200&width=200"}
             alt={name}
             fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover"
           />
         </div>
@@ -55,7 +56,7 @@ export default function ProductCard({
             {name}
           </h3>
         </Link>
-        <p className="text-sm text-gray-500 mt-1">₩{price.toLocaleString()}</p>
+        <p className="text-sm text-gray-500 mt-1">🪙 {price.toLocaleString()}</p>
       </CardContent>
       <CardFooter className="flex justify-end p-4 pt-0">
         <Link href={`/products/edit/${id}`}>

@@ -10,6 +10,7 @@ import com.e101.nift.secondhand.model.dto.request.PostArticleDto;
 import com.e101.nift.secondhand.model.dto.request.TxHashDTO;
 import com.e101.nift.secondhand.model.dto.response.ArticleDetailDto;
 import com.e101.nift.secondhand.model.dto.response.ArticleListDto;
+import com.e101.nift.secondhand.model.dto.response.ArticleSellerDto;
 import com.e101.nift.secondhand.model.state.SaleStatus;
 import com.e101.nift.secondhand.repository.ArticleRepository;
 import com.e101.nift.secondhand.repository.LikeRepository;
@@ -38,7 +39,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ArticleListDto> getArticleList(String sort, List<Long> categories, Pageable pageable, Long userId, Integer minPrice, Integer maxPrice) {
+    public Page<ArticleListDto> getArticleList(String sort, List<Long> categories, Pageable pageable, Long userId, Float minPrice, Float maxPrice) {
         // 정렬 기준
         Sort sortBy = switch (sort) {
             case "highest" -> Sort.by(Sort.Direction.DESC, "currentPrice").and(Sort.by("articleId"));
@@ -87,8 +88,8 @@ public class ArticleServiceImpl implements ArticleService {
                             return ArticleListDto.from(article, isLiked);
                         });
             } else {
-                // 아무 필터도 없는 경우 전체 조회
-                articles = articleRepository.findAll(sortedPageable)
+                // 아무 필터도 없는 경우 전체 조회 (ON_SALE 상태만 필터링)
+                articles = articleRepository.findByState(targetState, sortedPageable)
                         .map(article -> {
                             boolean isLiked = (userId != null) &&
                                     likeRepository.existsByArticle_ArticleIdAndUser_UserId(article.getArticleId(), userId);
@@ -96,6 +97,8 @@ public class ArticleServiceImpl implements ArticleService {
                         });
             }
         }
+
+        log.info("[ArticleService] getArticleList {}", articles);
         return articles;
     }
 
@@ -105,6 +108,14 @@ public class ArticleServiceImpl implements ArticleService {
     public Float getMaxCurrentPrice() {
         Float maxPrice = articleRepository.findMaxCurrentPrice();
         return maxPrice != null ? maxPrice : 0f;
+    }
+
+    @Override
+    public Page<ArticleSellerDto> getOtherArticlesByUser(Long userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Article> articles = articleRepository.findByUserIdAndState(userId, SaleStatus.ON_SALE, pageable);
+
+        return articles.map(ArticleSellerDto::from);
     }
 
     // 로그인 여부와 관계없이 전체 상품 반환
@@ -118,12 +129,16 @@ public class ArticleServiceImpl implements ArticleService {
 
     // 중고 기프티콘의 상세 정보 조회
     @Override
-    public ArticleDetailDto getArticleDetail(Long articleId, Long userId) {
+    public ArticleDetailDto getArticleDetail(Long articleId, Long userId, Long accessUserId) {
 
         Article article = articleRepository.findByArticleId(articleId)
                 .orElseThrow(() -> new RuntimeException("상품이 조회되지 않습니다."));
 
         Gifticon gifticon = article.getGifticon();
+
+        article.setViewCnt(article.getViewCnt()+1);
+        articleRepository.save(article);
+
         boolean isLiked = false;
         if (userId != null) {
             isLiked = likeRepository.existsByArticle_ArticleIdAndUser_UserId(articleId, userId);
@@ -131,6 +146,16 @@ public class ArticleServiceImpl implements ArticleService {
 
         User user = userRepository.findByUserId(article.getUserId())
                 .orElseThrow(() -> new RuntimeException("판매자 정보가 조회되지 않습니다."));
+        Long sellerTxs = articleRepository.countByUserId(article.getUserId());
+
+        boolean isPossible = true;
+//        System.out.println("🍰🍰🍰접속한 사용자 : "+ accessUserId+ ", 판매자 : "+ article.getUserId());
+        if (accessUserId != null) {
+            isPossible = (!accessUserId.equals(article.getUserId()));
+        }
+
+        boolean isSold = false;
+        isSold = article.getState() == SaleStatus.SOLD;
 
         return new ArticleDetailDto(
                 article.getArticleId(),
@@ -150,7 +175,10 @@ public class ArticleServiceImpl implements ArticleService {
                 gifticon.getCategory().getCategoryName(),
                 isLiked,
                 user.getNickName(),
-                user.getProfileImage()
+                user.getProfileImage(),
+                sellerTxs,
+                isPossible,
+                isSold
         );
     }
 

@@ -1,0 +1,68 @@
+networks:
+  backend-tier:
+    external: true
+    name: shared_backend
+
+  frontend-tier:
+    external: true
+    name: shared_frontend
+
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        BUILD_MODE: development
+    restart: always
+    container_name: backend
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: server
+    ports:
+        - "8081:8081"
+    networks:
+      - backend-tier
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        BUILD_MODE: development
+    image: frontend
+    restart: always
+    container_name: frontend
+    environment:
+      NODE_ENV: production
+    env_file:
+      - .env
+    depends_on: 
+      - backend
+    ports:
+      - "3000:3000"
+    networks:
+      - frontend-tier
+      - backend-tier
+
+  admin-frontend:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+      args:
+        PORT: 3001
+        BUILD_MODE: development
+    image: admin-frontend
+    restart: always
+    container_name: frontend_admin
+    environment:
+      NODE_ENV: production
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    ports:
+      - "3001:3001"
+    networks:
+      - backend-tier

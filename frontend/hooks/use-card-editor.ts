@@ -408,7 +408,8 @@ export function useCardEditor(giftId: string) {
   }
 
   // 선물 카드 저장 및 다음 단계로 이동
-  const saveCardData = useCallback(() => {
+  const saveCardData = useCallback(
+    (images?: { frontImage?: string; backImage?: string }) => {
     try {
       // 이미지 데이터 크기 확인 및 경고
       let totalSize = 0
@@ -496,6 +497,8 @@ export function useCardEditor(giftId: string) {
         isFlipped,
         message,
         recipientName,
+        frontImage: images?.frontImage || null,
+        backImage: images?.backImage || null,
       }
 
       // localStorage에 카드 데이터 저장

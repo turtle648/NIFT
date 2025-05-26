@@ -17,7 +17,7 @@ export const LoadingProvider = ({ children }: { children: ReactNode }) => {
     <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
       {isLoading && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
-          <Image src="/loadingspinner.gif" alt="로딩스피너" width={100} height={100} unoptimized/>
+          <Image src="/loadingspinner.gif" alt="로딩스피너" width={100} height={100} unoptimized priority/>
         </div>
       )}
       {children}

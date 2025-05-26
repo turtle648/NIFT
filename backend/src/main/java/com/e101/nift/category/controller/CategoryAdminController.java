@@ -19,7 +19,7 @@ public class CategoryAdminController {
 
     private final CategoryRepository categoryRepository;
 
-    @Operation(summary = "카테고리 목록 추가", description = "카테고린 목록 추가하기")
+    @Operation(summary = "카테고리 목록 추가", description = "카테고리 목록 추가하기")
     @PostMapping
     public ResponseEntity<CategoryDto> insertCategories(@RequestBody CategoryDto categoryDto) {
         Category category = new Category();

@@ -55,15 +55,15 @@ const categories = [
 
 export function FeaturedCategories() {
   return (
-    <section className="py-12">
+    <section className="py-8">
       <div className="container">
-        <h2 className="mb-8 text-center text-2xl font-bold tracking-tight md:text-3xl">카테고리별 상품</h2>
+        <h2 className="mb-6 text-center text-2xl font-bold tracking-tight md:text-3xl">카테고리별 상품</h2>
         <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8">
           {categories.map((category) => (
             <Link
               key={category.name}
               href={category.href}
-              className="group flex flex-col items-center gap-2 rounded-lg p-4 text-center transition-colors hover:bg-gray-100"
+              className="group flex flex-col items-center gap-2 rounded-lg py-3 px-4 text-center transition-colors hover:bg-gray-100"
             >
               <div className={cn("flex h-12 w-12 items-center justify-center rounded-full", category.color)}>
                 {category.icon}

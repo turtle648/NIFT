@@ -4,13 +4,13 @@ import type React from "react"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { v4 as uuidv4 } from "uuid"
-import type { CardElement as CardElementType } from "@/types/gift-card"
+import { CardElement as CardElementType } from "@/types"
 import { cardTemplates } from "@/data/card-templates"
 
 export function useCardEditor(giftId: string) {
   const [activeTab, setActiveTab] = useState("templates")
   const [selectedTemplate, setSelectedTemplate] = useState(cardTemplates[0])
-  const [selectedBackTemplate, setSelectedBackTemplate] = useState(cardTemplates[0])
+  const [selectedBackTemplate, setSelectedBSackTemplate] = useState(cardTemplates[0])
   const [frontElements, setFrontElements] = useState<CardElementType[]>([])
   const [backElements, setBackElements] = useState<CardElementType[]>([])
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null)
@@ -307,7 +307,7 @@ export function useCardEditor(giftId: string) {
   const handleChangeTemplate = useCallback(
     (template: typeof selectedTemplate) => {
       if (isFlipped) {
-        setSelectedBackTemplate(template)
+        setSelectedBSackTemplate(template)
         // 사용자 정의 템플릿이 아닌 경우 배경 이미지 초기화
         if (!template.isCustom) {
           setCustomBackBackground(null)
@@ -571,7 +571,7 @@ export function useCardEditor(giftId: string) {
           if (parsedData.backTemplate) {
             const backTemplateId = parsedData.backTemplate.id
             const foundBackTemplate = cardTemplates.find((t) => t.id === backTemplateId) || cardTemplates[0]
-            setSelectedBackTemplate(foundBackTemplate)
+            setSelectedBSackTemplate(foundBackTemplate)
 
             // 커스텀 배경 설정
             if (
@@ -606,7 +606,7 @@ export function useCardEditor(giftId: string) {
       setFrontElements([])
       setBackElements([])
       setSelectedTemplate(cardTemplates[0])
-      setSelectedBackTemplate(cardTemplates[0])
+      setSelectedBSackTemplate(cardTemplates[0])
       setCustomBackground(null)
       setCustomBackBackground(null)
       setMessage("")

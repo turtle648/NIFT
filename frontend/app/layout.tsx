@@ -10,7 +10,7 @@ const notoSans = Noto_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "NFT 기프티콘 중고거래 사이트",
+  title: "NFT 기프티콘 중고거래 NIFT",
   description: "안전하고 투명한 NFT 기반 기프티콘 중고거래 플랫폼",
   generator: 'v0.dev',
   icons: {

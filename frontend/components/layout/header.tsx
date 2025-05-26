@@ -1,21 +1,31 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import Image from "next/image"
-import { useState, useEffect, useRef } from "react"
-import { usePathname, useRouter } from "next/navigation"
-import { Search, Heart, Bell, Menu, MapPin, LogOut, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { cn } from "@/lib/utils"
-import { LayoutGrid, Coffee, Cake, IceCream, Drumstick, Pizza, ShoppingBag, Gift, Film } from "lucide-react"
+import Link from "next/link";
+import Image from "next/image";
+import { useState, useEffect, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Search, Bell, Menu, LogOut, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import {
+  LayoutGrid,
+  Coffee,
+  Cake,
+  IceCream,
+  Drumstick,
+  Pizza,
+  ShoppingBag,
+  Gift,
+  Film,
+} from "lucide-react";
 
 const navigation = [
   { name: "홈", href: "/" },
   { name: "마이페이지", href: "/mypage" },
   { name: "상품등록", href: "/register" },
-]
+];
 
 const categories = [
   { name: "전체 상품", href: "/articles" },
@@ -26,58 +36,62 @@ const categories = [
   { name: "피자/버거", href: "/articles?category=5" },
   { name: "편의점/마트", href: "/articles?category=6" },
   { name: "상품권/금액권", href: "/articles?category=7" },
-  { name: "영화/도서", href: "/articles?category=8" }
-]
+  { name: "영화/도서", href: "/articles?category=8" },
+];
 
 export function Header() {
-  const pathname = usePathname()
-  const router = useRouter()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const pathname = usePathname();
+  const router = useRouter();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen)
-  }
+    setIsDropdownOpen(!isDropdownOpen);
+  };
 
-   // Close dropdown when clicking outside
-   useEffect(() => {
+  // Close dropdown when clicking outside
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false)
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside)
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     // Check if user is authenticated on component mount
     const checkAuth = () => {
-      const token = localStorage.getItem("access_token")
-      setIsAuthenticated(!!token)
-    }
+      const token = localStorage.getItem("access_token");
+      setIsAuthenticated(!!token);
+    };
 
-    checkAuth()
+    checkAuth();
 
     // Add event listener to detect changes in localStorage
-    window.addEventListener("storage", checkAuth)
+    window.addEventListener("storage", checkAuth);
 
     return () => {
-      window.removeEventListener("storage", checkAuth)
-    }
-  }, [])
+      window.removeEventListener("storage", checkAuth);
+    };
+  }, []);
 
   // Add logout handler function before the return statement
   const handleLogout = () => {
-    localStorage.removeItem("access_token")
-    setIsAuthenticated(false)
-    window.location.reload()
-  }
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("kakao_access_token");
+    setIsAuthenticated(false);
+    window.location.reload();
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white">
@@ -93,7 +107,9 @@ export function Header() {
                 className="object-contain"
               />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-primary">NIFT</span>
+            <span className="text-2xl font-bold tracking-tight text-primary">
+              NIFT
+            </span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -103,7 +119,7 @@ export function Header() {
                 href={item.href}
                 className={cn(
                   "text-sm font-medium transition-colors hover:text-primary",
-                  pathname === item.href ? "text-primary" : "text-gray-900",
+                  pathname === item.href ? "text-primary" : "text-gray-900"
                 )}
               >
                 {item.name}
@@ -113,10 +129,14 @@ export function Header() {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          <div className="relative w-55">
+          {/* <div className="relative w-55">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input type="search" placeholder="상품 검색..." className="w-full rounded-full pl-8 md:w-64 lg:w-80" />
-          </div>
+            <Input
+              type="search"
+              placeholder="상품 검색..."
+              className="w-full rounded-full pl-8 md:w-64 lg:w-80"
+            />
+          </div> */}
 
           <Button variant="ghost" size="icon" aria-label="알림창">
             <Bell className="h-5 w-5" />
@@ -140,13 +160,20 @@ export function Header() {
 
         {/* 모바일 메뉴 버튼 */}
         <Sheet>
-          <SheetTrigger asChild className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+          <SheetTrigger
+            asChild
+            className="md:hidden"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
             <Button variant="ghost" size="icon">
               <Menu className="h-5 w-5" />
               <span className="sr-only">메뉴 열기</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 overflow-y-auto max-h-screen scrollbar-hide">
+          <SheetContent
+            side="left"
+            className="w-72 overflow-y-auto max-h-screen scrollbar-hide"
+          >
             <div className="grid gap-6 py-6">
               <div className="flex items-center gap-2">
                 <div className="relative h-8 w-8 overflow-hidden">
@@ -162,14 +189,19 @@ export function Header() {
               </div>
 
               <div className="grid gap-2">
-                <div className="relative">
+                {/* <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input type="search" placeholder="상품 검색..." className="w-full rounded-full bg-background pl-8" />
-                </div>
+                </div> */}
                 {/* Conditional rendering for mobile menu */}
                 <div className="grid grid-cols-2 gap-2">
                   {isAuthenticated ? (
-                    <Button variant="outline" size="sm" onClick={handleLogout} className="col-span-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleLogout}
+                      className="col-span-2"
+                    >
                       <LogOut className="h-4 w-4 mr-2" />
                       로그아웃
                     </Button>
@@ -185,7 +217,7 @@ export function Header() {
 
               {/* Rest of the mobile menu */}
               <div className="grid gap-2">
-                <div className="text-sm font-medium">메뉴</div>
+                <div className="text-lg font-semibold">메뉴</div>{" "}
                 <nav className="grid gap-1">
                   {navigation.map((item) => (
                     <Link
@@ -193,7 +225,11 @@ export function Header() {
                       href={item.href}
                       className={cn(
                         "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-                        item.href === "/mypage" ? "bg-primary/10 text-primary" : "hover:bg-muted",
+                        // ✅ 아래 조건 삭제하고 hover 효과만 남기기
+                        // item.href === "/mypage"
+                        //   ? "bg-primary/10 text-primary"
+                        //   : "hover:bg-muted"
+                        "hover:bg-muted"
                       )}
                     >
                       {item.name}
@@ -202,16 +238,18 @@ export function Header() {
                 </nav>
               </div>
               <div className="grid gap-2">
-                <div className="text-sm font-medium">카테고리</div>
+                <div className="text-lg font-semibold">카테고리</div>
                 <nav className="grid gap-1">
                   {categories.map((category) => (
                     <Link
-                    key={category.name}
-                    href={category.href}
-                    className={cn(
-                      "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-                      pathname === category.href ? "bg-primary/10 text-primary" : "hover:bg-gray-100",
-                    )}
+                      key={category.name}
+                      href={category.href}
+                      className={cn(
+                        "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                        pathname === category.href
+                          ? "bg-primary/10 text-primary"
+                          : "hover:bg-gray-100"
+                      )}
                     >
                       {category.name}
                     </Link>
@@ -236,9 +274,7 @@ export function Header() {
             </button>
 
             {isDropdownOpen && (
-              <div
-                className="absolute top-full left-0 mt-1 w-64 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 z-50"
-              >
+              <div className="absolute top-full left-0 mt-1 w-64 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 z-50">
                 <div className="py-2">
                   <Link
                     href="/articles"
@@ -306,7 +342,9 @@ export function Header() {
                       className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => setIsDropdownOpen(false)}
                     >
-                      <div className="flex items-center justify-center w-8 h-8 mr-3 text-gray-500">{category.icon}</div>
+                      <div className="flex items-center justify-center w-8 h-8 mr-3 text-gray-500">
+                        {category.icon}
+                      </div>
                       <span>{category.name}</span>
                     </Link>
                   ))}
@@ -317,7 +355,5 @@ export function Header() {
         </div>
       </div>
     </header>
-  )
+  );
 }
-
-

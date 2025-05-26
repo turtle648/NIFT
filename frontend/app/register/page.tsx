@@ -163,7 +163,7 @@ export default function RegisterPage() {
         <div className="container">
           {accessToken === "loading" ? null : !accessToken ? (
             <div className="flex flex-col items-center justify-center h-[70vh]">
-              <Image src="/1.svg" alt="로그인 필요" width={120} height={120} />
+              <Image src="/1.svg" alt="로그인 필요" width={120} height={120} priority/>
               <p className="mt-4 text-lg font-semibold">로그인이 필요합니다!</p>
               <Button className="mt-4" onClick={() => router.push("/signin")}>
                 로그인 하러 가기
@@ -171,7 +171,7 @@ export default function RegisterPage() {
             </div>
           ) : dbWalletAddress === null ? (
             <div className="flex flex-col items-center justify-center h-[70vh] text-center">
-              <Image src="/1.svg" alt="지갑 없음" width={120} height={120} />
+              <Image src="/1.svg" alt="지갑 없음" width={120} height={120} priority/>
               <p className="mt-4 text-lg font-semibold">
                 지갑이 등록되어 있지 않습니다.
               </p>
@@ -182,7 +182,7 @@ export default function RegisterPage() {
           ) : metamaskAddress?.toLowerCase() !==
             dbWalletAddress.toLowerCase() ? (
             <div className="flex flex-col items-center justify-center h-[70vh] text-center">
-              <Image src="/1.svg" alt="주소 불일치" width={120} height={120} />
+              <Image src="/1.svg" alt="주소 불일치" width={120} height={120} priority/>
               <p className="mt-4 text-lg font-semibold text-red-600">
                 현재 연결된 지갑이 등록된 지갑과 다릅니다.
               </p>

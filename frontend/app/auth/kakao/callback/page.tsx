@@ -89,6 +89,7 @@ const KakaoCallback: React.FC = () => {
         alt="로딩 중..."
         width={64}
         height={64}
+        unoptimized
       />
     </div>
   );

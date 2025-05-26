@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: "NFT 기프티콘샵 관리자 페이지",
   generator: "v0.dev",
   icons: {
-    icon: "./admin/favicon-admin.ico",
+    icon: "../admin/favicon-admin.ico",
   },
 };
 

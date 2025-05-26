@@ -6,6 +6,7 @@ import com.e101.nift.secondhand.model.dto.request.PostArticleDto;
 import com.e101.nift.secondhand.model.dto.request.TxHashDTO;
 import com.e101.nift.secondhand.model.dto.response.ArticleDetailDto;
 import com.e101.nift.secondhand.model.dto.response.ArticleListDto;
+import com.e101.nift.secondhand.model.dto.response.ArticleSellerDto;
 import com.e101.nift.secondhand.service.ArticleService;
 import com.e101.nift.user.entity.User;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,10 +40,11 @@ public class ArticleController {
             @RequestParam(name = "category", required = false) List<Long> categories,  // 카테고리 필터링
             @RequestParam(name = "page", defaultValue = "1") int page,  // 기본 페이지 번호
             @RequestParam(name = "size", defaultValue = "10") int size,  // 페이지 크기
-            @RequestParam(name = "minPrice", required = false) Integer minPrice,    // 최소 가격
-            @RequestParam(name = "maxPrice", required = false) Integer maxPrice,     // 최대 가격
+            @RequestParam(name = "min-price", required = false) Float minPrice,    // 최소 가격
+            @RequestParam(name = "max-price", required = false) Float maxPrice,     // 최대 가격
             HttpServletRequest request
     ) {
+        log.info("[ArticleController] 진입 {} {} {} {} {} {}", sort, categories, page, size, maxPrice, minPrice);
         Long userId = null;
 
         try {
@@ -68,10 +70,19 @@ public class ArticleController {
     @Operation(summary = "판매 게시글 상세조회", description = "판매중인 상품의 상세 정보를 조회합니다.")
     public ResponseEntity<ArticleDetailDto> getArticleById(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable("articleId") Long articleId) {
+            @PathVariable("articleId") Long articleId,
+            HttpServletRequest request
+    ) {
+
+        Long accessUserId = null;
+        try {
+            accessUserId = jwtTokenProvider.getUserFromRequest(request).getUserId();
+        } catch (UsernameNotFoundException e) {
+            log.warn("유효하지 않은 사용자 입니다: {}", e.getMessage());
+        }
 
         Long userId = (userDetails != null) ? userDetails.getUserId() : null;
-        ArticleDetailDto dto = articleService.getArticleDetail(articleId, userId);
+        ArticleDetailDto dto = articleService.getArticleDetail(articleId, userId, accessUserId);
         return ResponseEntity.ok(dto);
     }
 
@@ -96,6 +107,16 @@ public class ArticleController {
     ) {
         articleService.deleteArticle(articleId, txHashDTO);
         return ResponseEntity.status(201).build();
+    }
+
+    @GetMapping("/others")
+    @Operation(summary = "판매자의 다른 상품", description = "판매자가 판매중인 다른 상품을 조회합니다.")
+    public Page<ArticleSellerDto> getOtherArticlesByUser(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size
+    ){
+        return articleService.getOtherArticlesByUser(userId, page, size);
     }
 
 }

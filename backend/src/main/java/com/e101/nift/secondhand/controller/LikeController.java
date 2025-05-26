@@ -1,6 +1,7 @@
 package com.e101.nift.secondhand.controller;
 
 import com.e101.nift.common.security.JwtTokenProvider;
+import com.e101.nift.secondhand.model.dto.request.ArticleLikeDTO;
 import com.e101.nift.secondhand.service.LikeService;
 import com.e101.nift.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/secondhand-articles")
@@ -63,5 +66,17 @@ public class LikeController {
 
         likeService.removeLike(userId, articleId);
         return ResponseEntity.ok("좋아요 취소 완료");
+    }
+
+    @Operation(summary = "전체 좋아요 목록 조회", description = "사용자의 모든 좋아요 상품을 반환합니다.")
+    @GetMapping("/likes")
+    public ResponseEntity<List<ArticleLikeDTO>> getAllLikedArticles(HttpServletRequest request) {
+        Long userId = jwtTokenProvider.getUserFromRequest(request).getUserId();
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        List<ArticleLikeDTO> likedArticles = likeService.getAllLikedArticles(userId);
+        return ResponseEntity.ok(likedArticles);
     }
 }

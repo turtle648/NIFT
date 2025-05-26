@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>블록 생성 간격 그래프</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <h2>블록 생성 간격 (초)</h2>
+    <canvas id="blockChart" width="800" height="400"></canvas>
+
+    <script>
+      fetch("./interval-data.json")
+        .then((res) => res.json())
+        .then((data) => {
+          const labels = data.map((d) => `${d.time}`);
+          const values = data.map((d) => d.interval);
+
+          const ctx = document.getElementById("blockChart").getContext("2d");
+          new Chart(ctx, {
+            type: "line",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "블록 생성 간격 (초)",
+                  data: values,
+                  borderWidth: 2,
+                  fill: false,
+                  tension: 0.2,
+                  borderColor: "blue",
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: { beginAtZero: true },
+              },
+            },
+          });
+        });
+    </script>
+  </body>
+</html>

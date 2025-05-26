@@ -32,4 +32,7 @@ public class ArticleDetailDto {
 
     private String userNickName;
     private String profileImage;
+    private Long sellerTxs; // 판매자가 참여한 거래수
+    private boolean isPossible; // 판매자와 조회자의 일치 여부 - 본인이 올린 글이면 false
+    private boolean isSold; // 판매 완료 체크
 }

@@ -30,4 +30,8 @@ public class CardDesign {
     // 앞 뒤 꾸미기 요소들
     private List<Map<String, Object>> frontElements;
     private List<Map<String, Object>> backElements;
+
+    // 캡처 이미지
+    private String frontImage;
+    private String backImage;
 }

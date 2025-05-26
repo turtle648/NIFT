@@ -1,6 +1,7 @@
 package com.e101.nift.secondhand.controller;
 
 import com.e101.nift.common.security.JwtTokenProvider;
+import com.e101.nift.secondhand.model.dto.response.DashBoardSummaryDto;
 import com.e101.nift.secondhand.model.dto.response.PurchaseHistoryDto;
 import com.e101.nift.secondhand.model.dto.response.SaleHistoryDto;
 import com.e101.nift.secondhand.model.dto.response.ScrollDto;
@@ -61,5 +62,11 @@ public class ArticleHistoryController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/dashboard-summary")
+    @Operation(summary = "대시보드 데이터", description = "관리자 페이지의 대시보드에서 조회되는 데이터입니다.")
+    public ResponseEntity<DashBoardSummaryDto> getDashboardSummary() {
+        DashBoardSummaryDto response = articleHistoryService.getDashBoardSummary();
+        return ResponseEntity.ok(response);
+    }
 
 }

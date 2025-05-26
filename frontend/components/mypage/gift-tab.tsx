@@ -1,39 +1,60 @@
 import { GiftCard } from "@/components/gift/gift-card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { UserNFT } from "@/lib/api/web3";
+import { Pagination } from "./pagination";
+import { UsedGiftCard } from "@/components/gift/gift-card";
 
 interface GiftTabProps {
+  userRole: number;
   availableGiftCards: any[];
   usedGiftCards: any[];
+  calculatedCards: any[];
   ITEMS_PER_PAGE: number;
   availableCurrentPage: number;
   setAvailableCurrentPage: (page: number) => void;
   usedCurrentPage: number;
   setUsedCurrentPage: (page: number) => void;
+  calculatedCurrentPage: number;
+  setCalculatedCurrentPage: (page: number) => void;
   calculateDday: (expiry: string) => number;
   giftCardTab: string;
   setGiftCardTab: (tab: string) => void;
-  onGifticonUsed: (serialNum: number) => void;
+  onGifticonCalculated: (serialNum: number) => void;
+  usedTotalPage: number;
+  usedTotalCount: number;
+}
+
+interface UsedGifticon {
+  usedHistoryId: number;
+  brandName: string;
+  title: string;
+  usedAt: string;
+  imageUrl: string;
 }
 
 export function GiftTab({
+  userRole,
   availableGiftCards,
   usedGiftCards,
+  calculatedCards,
   ITEMS_PER_PAGE,
   availableCurrentPage,
   setAvailableCurrentPage,
   usedCurrentPage,
   setUsedCurrentPage,
+  calculatedCurrentPage,
+  setCalculatedCurrentPage,
   calculateDday,
   giftCardTab,
   setGiftCardTab,
-  onGifticonUsed,
+  onGifticonCalculated,
+  usedTotalPage,
+  usedTotalCount
 }: GiftTabProps) {
   const availableTotalPage =
     Math.ceil(availableGiftCards.length / ITEMS_PER_PAGE) || 1;
-  const usedTotalPage = Math.ceil(usedGiftCards.length / ITEMS_PER_PAGE) || 1;
-
+  const calculatedTotalPage = Math.ceil(calculatedCards.length / ITEMS_PER_PAGE) || 1;
+  
   return (
     <Tabs value={giftCardTab} onValueChange={setGiftCardTab}>
       <TabsList className="w-full">
@@ -41,59 +62,72 @@ export function GiftTab({
           사용 가능 {availableGiftCards.length}
         </TabsTrigger>
         <TabsTrigger value="used" className="flex-1">
-          사용 완료 {usedGiftCards.length}
+          사용 완료 {usedTotalCount}
         </TabsTrigger>
+        {userRole === 1 && (
+          <TabsTrigger value="calculated" className="flex-1">
+          정산 완료 {calculatedCards.length}
+        </TabsTrigger>
+        )}
       </TabsList>
 
       <TabsContent value="available" className="mt-6">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {availableGiftCards
-            .slice(
-              availableCurrentPage * ITEMS_PER_PAGE,
-              (availableCurrentPage + 1) * ITEMS_PER_PAGE
-            )
-            .map((card: UserNFT) => (
-              <GiftCard
-                key={Number(card.serialNum)}
-                expiryDays={`D-${calculateDday(card.expiryDate)}`}
-                card={card}
-                onGifticonUsed={onGifticonUsed}
-              />
-            ))}
-        </div>
+        {(() => {
+          const sortedAvailableGiftCards = [
+            ...availableGiftCards
+                .filter(card => !card.isPending && !card.isSelling)
+                .sort((a, b) => Number(b.id) - Number(a.id)),
+            ...availableGiftCards
+                .filter(card => !card.isPending && card.isSelling)
+                .sort((a, b) => Number(b.id) - Number(a.id)),
+            ...availableGiftCards
+                .filter(card => card.isPending && !card.isSelling)
+                .sort((a, b) => Number(b.id) - Number(a.id)),
+          ];
 
-        {availableGiftCards.length === 0 ? (
-          <div className="mt-8 mb-12 text-center text-muted-foreground">
-            사용 가능한 선물이 없습니다.
-          </div>
-        ) : (
-          <Pagination
-            currentPage={availableCurrentPage}
-            totalPage={availableTotalPage}
-            setCurrentPage={setAvailableCurrentPage}
-          />
-        )}
+          return (
+              <>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
+                  {sortedAvailableGiftCards
+                      .slice(
+                          availableCurrentPage * ITEMS_PER_PAGE,
+                          (availableCurrentPage + 1) * ITEMS_PER_PAGE
+                      )
+                      .map((card: UserNFT) => (
+                          <GiftCard
+                              key={Number(card.serialNum)}
+                              expiryDays={`D-${calculateDday(card.expiryDate)}`}
+                              card={card}
+                          />
+                      ))}
+                </div>
+
+                {availableGiftCards.length === 0 ? (
+                    <div className="mt-8 mb-12 text-center text-muted-foreground">
+                      사용 가능한 기프티콘이 없습니다.
+                    </div>
+                ) : (
+                    <Pagination
+                        currentPage={availableCurrentPage}
+                        totalPage={availableTotalPage}
+                        setCurrentPage={setAvailableCurrentPage}
+                    />
+                )}
+              </>
+          );
+        })()}
       </TabsContent>
 
       <TabsContent value="used" className="mt-6">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {usedGiftCards
-            .slice(
-              usedCurrentPage * ITEMS_PER_PAGE,
-              (usedCurrentPage + 1) * ITEMS_PER_PAGE
-            )
-            .map((card: UserNFT) => (
-              <GiftCard
-                key={Number(card.serialNum)}
-                expiryDays={`D-${calculateDday(card.expiryDate)}`}
-                card={card}
-              />
-            ))}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
+          {usedGiftCards.map((gifticon) => (
+              <UsedGiftCard key={gifticon.usedHistoryId} gifticon={gifticon} />
+          ))}
         </div>
 
         {usedGiftCards.length === 0 ? (
           <div className="mt-8 mb-12 text-center text-muted-foreground">
-            사용 완료된 선물이 없습니다.
+            사용 완료된 기프티콘이 없습니다.
           </div>
         ) : (
           <Pagination
@@ -103,56 +137,39 @@ export function GiftTab({
           />
         )}
       </TabsContent>
-    </Tabs>
-  );
-}
 
-// 내부용 Pagination 컴포넌트
-function Pagination({
-  currentPage,
-  totalPage,
-  setCurrentPage,
-}: {
-  currentPage: number;
-  totalPage: number;
-  setCurrentPage: (page: number) => void;
-}) {
-  const maxButtons = 5;
-  const start = Math.floor(currentPage / maxButtons) * maxButtons;
-  const end = Math.min(start + maxButtons, totalPage);
+      {userRole === 1 && (
 
-  return (
-    <div className="mt-8 flex justify-center items-center gap-2">
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={currentPage === 0}
-        onClick={() => setCurrentPage(Math.max(currentPage - 1, 0))}
-      >
-        ‹ 이전
-      </Button>
+        <TabsContent value="calculated" className="mt-6">
+        {/* Changed grid-cols-1 to grid-cols-2 for better mobile layout */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
+          {calculatedCards
+            .slice(
+              calculatedCurrentPage * ITEMS_PER_PAGE,
+              (calculatedCurrentPage + 1) * ITEMS_PER_PAGE
+            )
+            .map((card: UserNFT) => (
+              <GiftCard
+              key={Number(card.serialNum)}
+              expiryDays={`D-${calculateDday(card.expiryDate)}`}
+              card={card}
+              />
+            ))}
+        </div>
 
-      {Array.from({ length: end - start }, (_, i) => i + start).map(
-        (pageNum) => (
-          <Button
-            key={pageNum}
-            variant={currentPage === pageNum ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setCurrentPage(pageNum)}
-          >
-            {pageNum + 1}
-          </Button>
-        )
+        {calculatedCards.length === 0 ? (
+          <div className="mt-8 mb-12 text-center text-muted-foreground">
+            정산 완료된 기프티콘이 없습니다.
+          </div>
+        ) : (
+          <Pagination
+          currentPage={calculatedCurrentPage}
+          totalPage={calculatedTotalPage}
+          setCurrentPage={setCalculatedCurrentPage}
+          />
+        )}
+      </TabsContent>
       )}
-
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={currentPage === totalPage - 1}
-        onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPage - 1))}
-      >
-        다음 ›
-      </Button>
-    </div>
+    </Tabs>
   );
 }

@@ -36,4 +36,8 @@ public class GifticonDetailDto {
         this.createdAt = gifticon.getCreatedAt();
     }
 
+    public static GifticonDetailDto fromEntity(Gifticon gifticon) {
+        return new GifticonDetailDto(gifticon);
+    }
+
 }

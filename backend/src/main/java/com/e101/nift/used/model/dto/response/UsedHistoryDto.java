@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class UsedHistoryDto {
+    private Long usedHistoryId;
     private String brandName;
     private String title;
     private LocalDateTime usedAt;

@@ -103,7 +103,7 @@ export function RecentlyListed() {
   }, [])
 
   return (
-    <section className="py-12 bg-gray-50">
+    <section className="py-12 bg-[#e05d55]/[0.04]">
       <div className="container">
         <div className="mb-8 flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight md:text-3xl">최근 등록된 상품</h2>

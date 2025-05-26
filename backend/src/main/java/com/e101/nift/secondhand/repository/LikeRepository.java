@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface LikeRepository extends JpaRepository<Like, Long> {
     boolean existsByArticle_ArticleIdAndUser_UserId(Long articleId, Long userId);
@@ -21,4 +22,5 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
     // 사용자 아이디로 좋아요 데이터 삭제
     void deleteByUser_UserId(Long userId);
 
+    List<Like> findByUser(User user);
 }

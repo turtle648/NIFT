@@ -6,6 +6,7 @@ import { useRef, useState, useCallback, memo } from "react"
 import { useDraggable } from "@/hooks/use-draggable"
 import { useResizable } from "@/hooks/use-resizable"
 import type { CardElement as CardElementType } from "@/types/gift-card"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 interface CardElementProps {
@@ -141,19 +142,23 @@ export const CardElement = memo(function CardElement({
       tabIndex={0}
     >
       {element.type === "image" && element.src && (
-        <img
-          src={element.src || "/placeholder.svg"}
-          alt="User uploaded"
-          className="w-full h-full object-contain"
-          draggable={false}
-          crossOrigin="anonymous"
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            console.error("이미지 로딩 오류:", element.id)
-            ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=100&width=100&text=이미지+오류"
-          }}
-        />
+        <div className="w-full h-full relative">
+          <Image
+            src={element.src || "/placeholder.svg"}
+            alt="User uploaded"
+            fill
+            className="object-contain"
+            draggable={false}
+            crossOrigin="anonymous"
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              console.error("이미지 로딩 오류:", element.id)
+              const target = e.target as HTMLImageElement
+              target.src = "/placeholder.svg?height=100&width=100&text=이미지+오류"
+            }}
+          />
+        </div>
       )}
 
       {element.type === "sticker" && element.src && (
@@ -168,12 +173,13 @@ export const CardElement = memo(function CardElement({
               {element.src.split("text=")[1].replace(/%20/g, " ")}
             </div>
           ) : (
-            <img
+            <Image
               src={element.src || "/placeholder.svg"}
               alt="Sticker"
-              className="w-full h-full object-contain"
+              fill
+              className="object-contain"
               draggable={false}
-              crossOrigin="anonymous" // CORS 이슈 방지를 위해 추가
+              crossOrigin="anonymous"
             />
           )}
         </div>

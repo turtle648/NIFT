@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,13 +27,16 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
                                     @Param("state") SaleStatus state,
                                     Pageable pageable);
 
+    // 상태 기반 전체 필터링
+    Page<Article> findByState(SaleStatus state, Pageable pageable);
+
     // 가격 범위 필터링
     @Query("SELECT p FROM Article p " +
             "WHERE (:minPrice IS NULL OR p.currentPrice >= :minPrice) " +
             "AND (:maxPrice IS NULL OR p.currentPrice <= :maxPrice) " +
             "AND p.state = :state")
-    Page<Article> findByPriceRange(@Param("minPrice") Integer minPrice,
-                                   @Param("maxPrice") Integer maxPrice,
+    Page<Article> findByPriceRange(@Param("minPrice") Float minPrice,
+                                   @Param("maxPrice") Float maxPrice,
                                    @Param("state") SaleStatus state,
                                    Pageable pageable);
 
@@ -43,8 +47,8 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             "AND (:maxPrice IS NULL OR p.currentPrice <= :maxPrice) " +
             "AND p.state = :state")
     Page<Article> findByCategoryAndPriceRange(@Param("categories") List<Long> categories,
-                                              @Param("minPrice") Integer minPrice,
-                                              @Param("maxPrice") Integer maxPrice,
+                                              @Param("minPrice") Float minPrice,
+                                              @Param("maxPrice") Float maxPrice,
                                               @Param("state") SaleStatus state,
                                               Pageable pageable);
 
@@ -66,4 +70,21 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     Optional<Article> findArticleBySerialNumAndState(Long serialNum, SaleStatus status);
 
     Optional<Article> findArticleByTxHash(String txHash);
+
+    // 전체 판매 중인 상품 수
+    long countByState(SaleStatus state);
+
+    // 이번 주 매출 합계
+    @Query("SELECT SUM(a.currentPrice) FROM Article a " +
+            "LEFT JOIN ArticleHistory h ON a.articleId = h.articleId " +
+            "WHERE h.createdAt BETWEEN :start AND :end")
+    Long sumPriceByHistoryDateRange(@Param("start") LocalDateTime start,
+                                    @Param("end") LocalDateTime end);
+
+
+    // 판매자로 찾는 게시글 수
+    Long countByUserId(Long userId);
+
+    // 판매자의 다른 상품
+    Page<Article> findByUserIdAndState(Long userId, SaleStatus status, Pageable pageable);
 }

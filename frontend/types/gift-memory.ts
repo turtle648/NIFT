@@ -16,14 +16,14 @@ export interface GiftMemory {
       }
       frontElements: any[]
       backElements: any[]
+      frontImage?: string // base64 이미지 추가
+      backImage?: string // base64 이미지 추가
     }
     giftItem?: {
       id: string
       title: string
-      brand: string
-      price: number
       image: string
+      brand?: string
+      price?: number
     }
   }
-  
-  

@@ -14,10 +14,13 @@ public interface TransactionService {
     List<GifticonNFT.ListedForSaleEventResponse> getListedForSaleEventByTxHash(String txHash);
     List<GifticonNFT.CancelledSaleEventResponse> getCancelledSaleEventByTxHash(String txHash);
     List<GifticonNFT.GiftPendingEventResponse> getGiftPendingEventByTxHash(String txHash);
+    List<GifticonNFT.GiftedEventResponse> getGiftedEventByTxHash(String txHash);
+    List<GifticonNFT.RedeemedEventResponse> getRedeemedEventByTxHash(String txHash);
     List<BigInteger> getBlockNumbersFrom(BigInteger startBlock);
     List<GifticonNFT.NFTPurchasedEventResponse> getPurchaseEventsByBlockNumber(BigInteger blockNumber);
     List<GifticonNFT.ListedForSaleEventResponse> getListedForSaleEventsByBlockNumber(BigInteger blockNumber);
     List<GifticonNFT.GiftPendingEventResponse> getGiftPendingEventByBlockNumber(BigInteger blockNumber);
+    List<GifticonNFT.GiftedEventResponse> getGiftedEventByBlockNumber(BigInteger blockNumber);
     Gifticon getGifticon(BigInteger gifticonId);
     Long getUserId(String userAddress);
     User getUser(String userAddress);

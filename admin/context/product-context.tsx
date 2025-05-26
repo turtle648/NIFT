@@ -300,4 +300,3 @@ export function ProductProvider({ children }: { children: ReactNode }) {
 export function useProducts() {
   return useContext(ProductContext)
 }
-

@@ -80,10 +80,12 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 bg-blue-700 text-white">
-      <div className="p-4 border-b border-blue-600">
-        <h2 className="text-xl font-bold">NFT 기프티콘샵</h2>
-        <p className="text-sm text-blue-200">관리자 페이지</p>
-      </div>
+      <Link href="/"> 
+        <div className="p-4 border-b border-blue-600">
+          <h2 className="text-xl font-bold">NFT 기프티콘샵</h2>
+          <p className="text-sm text-blue-200">관리자 페이지</p>
+        </div>
+      </Link>
 
       <nav className="mt-2">
         <MenuItem href="/" title="홈 대시보드" icon={<Home className="w-5 h-5" />} />

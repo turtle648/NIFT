@@ -3,15 +3,14 @@ package com.e101.nift.used.controller;
 import com.e101.nift.common.security.CustomUserDetails;
 import com.e101.nift.used.model.dto.response.UsedHistoryDto;
 import com.e101.nift.used.service.UsedHistoryService;
-import com.e101.nift.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Page;
 
 @RestController
 @RequestMapping("/users/gifticons")
@@ -19,6 +18,15 @@ import org.springframework.data.domain.Page;
 public class UsedHistoryController {
 
     private final UsedHistoryService usedHistoryService;
+
+    @PostMapping("/{txHash}")
+    public ResponseEntity<Void> usedGifticons(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable("txHash") String txHash
+    ) {
+        usedHistoryService.insertUsedHistory(userDetails.getUserId(), txHash);
+        return ResponseEntity.ok().build();
+    }
 
     @GetMapping("/used")
     public Page<UsedHistoryDto> getUsedGifticons(

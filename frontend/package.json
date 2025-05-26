@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0",
     "lint": "next lint"
   },
   "dependencies": {
@@ -36,6 +36,7 @@
     "@radix-ui/react-toggle": "^1.1.2",
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
+    "@walletconnect/web3-provider": "^1.8.0",
     "autoprefixer": "10.4.14",
     "axios": "^1.8.3",
     "class-variance-authority": "^0.6.0",
@@ -44,6 +45,7 @@
     "embla-carousel-react": "^8.5.2",
     "ethers": "^6.13.5",
     "framer-motion": "^12.6.3",
+    "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.479.0",
@@ -64,6 +66,7 @@
     "utf-8-validate": "^6.0.5",
     "uuid": "^11.1.0",
     "vaul": "^1.1.2",
+    "web3modal": "^1.9.12",
     "zod": "^3.24.2"
   },
   "devDependencies": {

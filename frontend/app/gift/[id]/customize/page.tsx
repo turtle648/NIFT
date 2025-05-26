@@ -17,6 +17,7 @@ import { MessageForm } from "@/components/gift/message-form"
 import { v4 as uuidv4 } from "uuid"
 import { cn } from "@/lib/utils"
 import type { CardElementType } from "@/types"
+import html2canvas from "html2canvas"
 
 export default function GiftCardCustomizePage({ 
   params,
@@ -73,11 +74,16 @@ export default function GiftCardCustomizePage({
   } = useCardEditor(params.id)
 
   // 선물 카드 저장 및 다음 단계로 이동
-  const handleSaveCard = () => {
-    if (saveCardData()) {
+  const handleSaveCard = async () => {
+    const frontImage = await captureCardAsImage(false)
+    const backImage = await captureCardAsImage(true)
+  
+    const success = saveCardData({ frontImage, backImage })
+    if (success) {
       router.push(`/gift/${params.id}/payment?type=${type}`)
     }
   }
+  
 
   // 이미지 추가 핸들러 (ImageHandler 컴포넌트에서 사용)
   const handleAddImageFromHandler = (imageData: string) => {
@@ -101,6 +107,157 @@ export default function GiftCardCustomizePage({
 
     setSelectedElementId(newElement.id)
   }
+
+  // 카드를 이미지로 캡처하는 함수 (수정됨: 클론 생성 방식)
+  const captureCardAsImage = async (captureBackFace: boolean): Promise<string> => {
+    const elementsToCapture = captureBackFace ? backElements : frontElements;
+    const templateToUse = captureBackFace ? selectedBackTemplate : selectedTemplate;
+    const backgroundToUse = captureBackFace ? customBackBackground : customBackground;
+    const cardWidth = 400; // Use a fixed base width for consistency, matching editor?
+    const cardHeight = (cardWidth * 3) / 4; // Maintain aspect ratio
+
+    // 1. Create temporary container
+    const cloneContainer = document.createElement("div");
+    cloneContainer.style.position = "absolute";
+    cloneContainer.style.left = "-9999px"; // Position off-screen
+    cloneContainer.style.top = "-9999px";
+    cloneContainer.style.width = `${cardWidth}px`;
+    cloneContainer.style.height = `${cardHeight}px`;
+    cloneContainer.style.overflow = "hidden"; // Clip content
+    // Removed fontFamily and color from template - rely on element or defaults
+
+    // 2. Apply background
+    const effectiveBackground = templateToUse.isCustom && backgroundToUse ? backgroundToUse : templateToUse.background;
+    if (effectiveBackground) {
+      if (effectiveBackground.startsWith("data:image") || effectiveBackground.startsWith("http") || effectiveBackground.startsWith("/")) {
+        cloneContainer.style.backgroundImage = `url(${effectiveBackground})`;
+        cloneContainer.style.backgroundSize = "cover";
+        cloneContainer.style.backgroundPosition = "center";
+        cloneContainer.style.backgroundColor = 'transparent'; // Ensure background color doesn't interfere
+      } else if (effectiveBackground.startsWith("linear-gradient")) {
+         cloneContainer.style.background = effectiveBackground; // Apply gradient
+      } else {
+        cloneContainer.style.backgroundColor = effectiveBackground; // Apply color
+      }
+    } else {
+       cloneContainer.style.backgroundColor = 'white'; // Default background if none specified
+    }
+
+
+    // 3. Append element clones
+    elementsToCapture.forEach((element: CardElementType) => {
+      const elemDiv = document.createElement("div");
+      elemDiv.style.position = "absolute";
+      elemDiv.style.left = `${element.x}px`;
+      elemDiv.style.top = `${element.y}px`;
+      elemDiv.style.width = `${element.width}px`;
+      elemDiv.style.height = `${element.height}px`;
+      elemDiv.style.transform = `rotate(${element.rotation}deg)`;
+      elemDiv.style.transformOrigin = "center center";
+      elemDiv.style.zIndex = `${element.zIndex || 1}`;
+      elemDiv.style.display = 'flex'; // Use flex for centering content
+      elemDiv.style.alignItems = 'center';
+      elemDiv.style.justifyContent = 'center';
+      elemDiv.style.overflow = 'hidden'; // Hide overflow within element bounds
+
+      if (element.type === "text") {
+        const textSpan = document.createElement("span");
+        textSpan.textContent = element.content || "";
+        // Use fontFamily from element if available, otherwise inherit
+        textSpan.style.fontFamily = element.fontFamily || "inherit";
+        // Approximate font size based on element height/width for capture
+        const approxFontSize = Math.min(element.width / 10, element.height / 1.5);
+        textSpan.style.fontSize = `${approxFontSize}px`;
+        // Set default text color as element.color and template.fontColor don't exist
+        textSpan.style.color = "black";
+        // Set default text align as element.textAlign doesn't exist
+        textSpan.style.textAlign = "center";
+        textSpan.style.wordBreak = "break-word";
+        textSpan.style.whiteSpace = "pre-wrap"; // Preserve whitespace/newlines
+        textSpan.style.padding = '2px'; // Small padding
+        textSpan.style.lineHeight = '1.2'; // Adjust line height
+        elemDiv.appendChild(textSpan);
+      } else if (element.type === "sticker" && element.src?.includes("text=")) {
+        // Handle text-based emoji stickers
+        const emojiSpan = document.createElement("span");
+        try {
+          // Extract emoji text from src (e.g., /placeholder.svg?text=🎂)
+          const urlParams = new URLSearchParams(element.src.split('?')[1]);
+          const emojiText = urlParams.get('text') || '';
+          emojiSpan.textContent = decodeURIComponent(emojiText); // Decode URL encoding if any
+        } catch (e) {
+          console.error("Error parsing emoji sticker src:", element.src, e);
+          emojiSpan.textContent = '?'; // Fallback character
+        }
+        // Apply styling similar to how CardPreview might render it
+        emojiSpan.style.fontSize = `${Math.min(element.width, element.height) * 0.6}px`; // Approximate size
+        emojiSpan.style.display = 'inline-block'; // Ensure it behaves like a block for centering
+        emojiSpan.style.lineHeight = '1'; // Adjust line height for emoji centering
+        elemDiv.appendChild(emojiSpan);
+      } else if ((element.type === "image" || element.type === "sticker") && element.src) {
+        // Handle actual image elements (user uploads or non-emoji stickers)
+        const img = document.createElement("img");
+        img.src = element.src;
+        img.crossOrigin = "anonymous"; // Important for html2canvas with external images
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.objectFit = "contain"; // Match rendering style
+        elemDiv.appendChild(img);
+      }
+      cloneContainer.appendChild(elemDiv);
+    });
+
+    // 4. Append to body
+    document.body.appendChild(cloneContainer);
+
+    // 5. Wait ONLY for actual images (<img> tags) to load
+    const imagesToLoad = Array.from(cloneContainer.querySelectorAll("img")); // Select only img elements
+    const imageLoadPromises = imagesToLoad.map(img => {
+      // Check if the image is already loaded/cached or is a data URI
+      if (img.complete || img.src.startsWith('data:')) {
+        return Promise.resolve();
+      }
+      return new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        // Resolve even on error to not block capture, placeholder might be rendered
+        img.onerror = () => {
+          console.warn(`Image failed to load for capture: ${img.src}`);
+          resolve();
+        };
+      });
+    });
+
+    try {
+      // Wait for all images to settle (load or error)
+      await Promise.allSettled(imageLoadPromises);
+
+      // Add a small delay just in case rendering needs a tick
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // 6. Capture canvas
+      const canvas = await html2canvas(cloneContainer, {
+        useCORS: true, // Enable CORS for images/stickers
+        allowTaint: true, // Allow cross-origin images (if useCORS isn't enough) - may not be needed with CORS
+        backgroundColor: null, // Use container's background
+        scale: 2, // Higher resolution
+        logging: false, // Reduce console noise
+      });
+
+      // 7. Remove clone & return data URL
+      document.body.removeChild(cloneContainer);
+      return canvas.toDataURL("image/png");
+
+    } catch (error) {
+      console.error("카드 클론 캡처 중 오류 발생:", error);
+      return ""; // Return empty string on error
+    } finally {
+       // Ensure cleanup happens even if errors occur during capture
+       if (document.body.contains(cloneContainer)) {
+         document.body.removeChild(cloneContainer);
+       }
+    }
+  }
+
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -311,4 +468,3 @@ export default function GiftCardCustomizePage({
     </div>
   )
 }
-

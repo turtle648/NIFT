@@ -33,38 +33,46 @@ export function GiftPaymentSummary({
   selectedFriend,
   type,
 }: GiftPaymentSummaryProps) {
-  console.log(selectedFriend);
+
+  const isGifticon = type === "gifticon";
+  const isArticle = type === "article";
+
+  console.log("아티클 정보: ", article, " - ", article.price)
 
   return (
     <Card className="sticky top-24">
       <CardContent className="p-6">
         <h2 className="text-xl font-bold mb-4">결제 정보</h2>
         <div className="space-y-4">
-          <div className="flex justify-between py-2">
-            <span className="text-gray-600">상품 금액</span>
-            <span className="font-medium">
-              {article.price.toLocaleString()}원
-            </span>
-          </div>
-          {article.originalPrice > article.price && (
-            <div className="flex justify-between py-2 text-primary">
-              <span>할인 금액</span>
-              <span>
-                -{(article.originalPrice - article.price).toLocaleString()}원
+          {isArticle && (
+            <>
+              <div className="flex justify-between py-2">
+              <span className="text-gray-600">상품 금액</span>
+              <span className="font-medium">
+                🪙{article.originalPrice}
               </span>
-            </div>
+              </div>
+              {article.originalPrice > article.price && (
+                <div className="flex justify-between py-2 text-primary">
+                  <span>할인 금액</span>
+                  <span>
+                    - 🪙{(article.originalPrice - article.price)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">선물 포장</span>
+                <span className="font-medium">무료</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between py-2">
+                <span className="font-medium">최종 결제 금액</span>
+                <span className="text-lg font-bold text-primary">
+                  🪙{article.price}
+                </span>
+              </div>
+            </>
           )}
-          <div className="flex justify-between py-2">
-            <span className="text-gray-600">선물 포장</span>
-            <span className="font-medium">무료</span>
-          </div>
-          <Separator />
-          <div className="flex justify-between py-2">
-            <span className="font-medium">최종 결제 금액</span>
-            <span className="text-lg font-bold text-primary">
-              {article.price.toLocaleString()}원
-            </span>
-          </div>
 
           <div className="flex items-center gap-2 mt-6">
             <input

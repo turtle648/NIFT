@@ -1,7 +1,9 @@
 package com.e101.nift.user.service;
 
+import com.e101.nift.user.entity.User;
 import com.e101.nift.user.model.dto.response.UserInfoDto;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserService {
@@ -11,4 +13,6 @@ public interface UserService {
     String getKakaoId(String accessToken);
     UserInfoDto getUserInfoByUser(Long userId);
     Optional<Long> findUserIdByAddress(String address);
+    List<User> getAllUsers();
+    List<User> getAllUsersWithAddress();
 }

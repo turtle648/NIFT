@@ -1,27 +1,67 @@
 "use client";
 
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ArticleCard, ArticleCardProps } from "@/components/article/article-card";
 
 interface WishListProps {
-  likedArticles: ArticleCardProps[];
+  allLikedArticles: ArticleCardProps[];
+  setAllLikedArticles: React.Dispatch<React.SetStateAction<ArticleCardProps[]>>;
   currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   startPage: number;
   endPage: number;
   totalPage: number;
+  setTotalPage: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export const WishList = ({
-  likedArticles,
+  allLikedArticles,
+  setAllLikedArticles,
   currentPage,
   setCurrentPage,
   startPage,
   endPage,
   totalPage,
+  setTotalPage,
 }: WishListProps) => {
+  const [likedArticles, setLikedArticles] = useState<ArticleCardProps[]>([]);
+
+  // 현재 페이지에 맞게 sliced likedArticles 설정
+  useEffect(() => {
+    const start = currentPage * 6;
+    const end = start + 6;
+
+    if (start >= allLikedArticles.length && currentPage > 0) {
+      setCurrentPage((prev) => prev - 1);
+    } else {
+      setLikedArticles(allLikedArticles.slice(start, end));
+    }
+  }, [allLikedArticles, currentPage, setCurrentPage]);
+
+  // 찜 해제 시 전체 데이터에서 제거 + 페이지 보정 + 현재 페이지 다시 slice
+  const handleRemoveFromLiked = (articleId: number) => {
+    const updatedAll = allLikedArticles.filter(
+      (article) => article.articleId !== articleId
+    );
+
+    setAllLikedArticles(updatedAll);
+
+    const updatedTotalPages = Math.ceil(updatedAll.length / 6);
+    setTotalPage(updatedTotalPages);
+
+    const start = currentPage * 6;
+    const end = start + 6;
+
+    if (start >= updatedAll.length && currentPage > 0) {
+      setCurrentPage((prev) => prev - 1);
+    }
+
+    // UI 반영을 위해 likedArticles도 slice 다시 수행
+    setLikedArticles(updatedAll.slice(start, end));
+  };
+
   const hasArticles = likedArticles.length > 0;
 
   return (
@@ -35,28 +75,24 @@ export const WishList = ({
 
       {hasArticles ? (
         <>
-          {/* 찜한 상품 목록 */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {likedArticles.map((article) => (
-              <Link
+              <ArticleCard
                 key={article.articleId}
-                href={`/product/${article.articleId}`}
-                passHref
-              >
-                <ArticleCard {...article} />
-              </Link>
+                {...article}
+                onUnlike={handleRemoveFromLiked}
+              />
             ))}
           </div>
 
-      {/* 페이지네이션 */}
-      <div className="mt-8 flex justify-center items-center gap-2">
-        <Button
-          variant="ghost"
-          disabled={currentPage === 0}
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
-        >
-          ‹ 이전
-        </Button>
+          <div className="mt-8 flex justify-center items-center gap-2">
+            <Button
+              variant="ghost"
+              disabled={currentPage === 0}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
+            >
+              ‹ 이전
+            </Button>
 
             {Array.from({ length: endPage - startPage }, (_, i) => startPage + i).map(
               (pageNum) => (

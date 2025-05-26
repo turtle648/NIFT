@@ -10,33 +10,33 @@ const slides = [
   {
     id: 1,
     title: "NFT 기프티콘 중고거래",
-    description: "안전하고 빠른 거래로 디지털 자산을 관리하세요",
-    image: "/placeholder.svg?height=600&width=1200",
+    description: "안 쓰는 기프티콘, NFT로 거래해요",
+    image: "/slide4.png?height=600&width=1200",
     cta: {
       text: "지금 시작하기",
-      link: "/register",
+      link: "/signin",
     },
     color: "bg-gradient-to-r from-primary/80 to-primary",
   },
   {
     id: 2,
-    title: "내 주변 기프티콘 찾기",
-    description: "위치 기반으로 가까운 기프티콘을 찾아보세요",
-    image: "/placeholder.svg?height=600&width=1200",
+    title: "기프티콘 선물하기",
+    description: "카톡으로 손쉽게 선물하세요!",
+    image: "/slide2.png?height=600&width=1200",
     cta: {
-      text: "주변 상품 보기",
-      link: "/articles/nearby",
+      text: "지금 선물하기",
+      link: "/signin",
     },
     color: "bg-gradient-to-r from-blue-500/80 to-blue-600",
   },
   {
     id: 3,
     title: "안전한 블록체인 기술",
-    description: "투명하고 안전한 거래를 보장합니다",
-    image: "/placeholder.svg?height=600&width=1200",
+    description: "소유권과 사용여부까지 확인되는 NFT 거래",
+    image: "/slide3.png?height=600&width=1200",
     cta: {
-      text: "자세히 알아보기",
-      link: "/about",
+      text: "지금 알아보기",
+      link: "/signin",
     },
     color: "bg-gradient-to-r from-purple-500/80 to-purple-600",
   },
@@ -62,7 +62,7 @@ export function HeroSection() {
 
   return (
     <div className="relative overflow-hidden">
-      <div className="relative h-[300px] md:h-[400px] lg:h-[500px] w-full overflow-hidden">
+      <div className="relative h-[260px] md:h-[280px] lg:h-[300px] w-full overflow-hidden">
         {slides.map((slide, index) => (
           <div
             key={slide.id}
@@ -72,7 +72,7 @@ export function HeroSection() {
             )}
           >
             <div className={cn("absolute inset-0 z-0", slide.color)} />
-            <div className="absolute inset-0 z-0 opacity-20">
+            <div className="absolute inset-0 z-0 opacity-50">
               <Image
                 src={slide.image || "/placeholder.svg"}
                 alt={slide.title}
@@ -81,12 +81,19 @@ export function HeroSection() {
                 priority={index === 0}
               />
             </div>
-            <div className="container relative z-10 flex flex-col items-start justify-center gap-4 text-white">
-              <h1 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
+            <div className="container relative z-10 flex flex-col items-start justify-center gap-3 text-white">
+              <h1 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
                 {slide.title}
               </h1>
-              <p className="max-w-md text-base md:text-lg lg:text-xl opacity-90">{slide.description}</p>
-              <Button size="lg" className="mt-2 bg-white text-primary hover:bg-white/90" asChild>
+              <p className="max-w-md text-base md:text-base lg:text-lg opacity-90">{slide.description}</p>
+              <Button
+                size="lg"
+                className="mt-1 bg-white hover:bg-white/90"
+                style={{
+                  color: slide.id === 1 ? "#E86040" : slide.id === 2 ? "#1556C7" : "#9A3CC2",
+                }}
+                asChild
+              >
                 <Link href={slide.cta.link}>{slide.cta.text}</Link>
               </Button>
             </div>

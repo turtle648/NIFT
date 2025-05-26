@@ -3,55 +3,41 @@
 import { useNft, UserNFT } from "@/lib/api/web3";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { getTokenIdBySerial } from "@/lib/api/web3";
-import { useState, useCallback } from "react";
-import QrScanner from "../ui/QrScanner";
+import { useCallback } from "react";
 
 interface GiftCardProps {
   expiryDays: string;
   card: UserNFT;
-  onGifticonUsed?: (serialNum: number) => void;
+  // onGifticonUsed?: (serialNum: number) => void;
 }
 
-export function GiftCard({ expiryDays, card, onGifticonUsed }: GiftCardProps) {
+interface UsedGifticon {
+  usedHistoryId: number;
+  brandName: string;
+  title: string;
+  usedAt: string;
+  imageUrl: string;
+}
+
+export function GiftCard({ expiryDays, card }: GiftCardProps) {
   const router = useRouter();
-  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
 
-  const handleGift = async (serialNum: number) => {
-    try {
-      router.push(`/gift/${serialNum}/customize?type=gifticon`);
-    } catch (error) {
-      console.error("gifticonId 조회 실패:", error);
-      alert("기프티콘 정보를 가져오지 못했습니다.");
-    }
-  };
-
-  const handleUseNft = async (walletAddress: string) => {
-    const response = await useNft(Number(card.serialNum), walletAddress);
-    if (response.success) {
-      alert("사용이 완료되었습니다.");
-      onGifticonUsed?.(Number(card.serialNum));
-    }
-  };
-
-  const onScanSuccessHandler = useCallback(
-    (walletAddress: string) => {
-      // 파라미터 타입 명시
-      console.log("✅ 인식된 지갑 주소:", walletAddress);
-      setIsQrScannerOpen(false);
-      handleUseNft(walletAddress);
-    },
-    [handleUseNft, setIsQrScannerOpen]
-  );
+  const handleCardClick = useCallback(() => {
+    router.push(`/mypage/nift/${card.serialNum}`);
+  }, [card.serialNum, router]);
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border bg-white transition-all hover:shadow-md">
+    <div
+      onClick={handleCardClick}
+      className="group block relative overflow-hidden rounded-lg border bg-white transition-all hover:shadow-md cursor-pointer" // Added cursor-pointer
+    >
+      {/* Removed redundant outer div, Link acts as the container */}
       <div className="relative aspect-square overflow-hidden">
         <Image
           src={card.image || "/placeholder.svg"}
-          alt={card.title}
+          alt={card.title} // Ensure alt text is present
           fill
-          className="object-cover"
+          className="object-cover transition-transform group-hover:scale-105"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
         {expiryDays && (
@@ -105,30 +91,41 @@ export function GiftCard({ expiryDays, card, onGifticonUsed }: GiftCardProps) {
           </div>
         )}
       </div>
-      {!card.redeemed && !card.isPending && !card.isSelling && (
-        <div className="grid grid-cols-2 gap-2 p-3 pt-0">
-          <button
-            className="rounded border border-primary px-3 py-2 text-sm font-medium text-primary hover:bg-primary hover:text-white transition-colors"
-            onClick={() => setIsQrScannerOpen(true)}
-          >
-            사용하기
-          </button>
+      {/* Removed buttons and QR scanner logic */}
+    </div>
+  );
+}
 
-          <button
-            className="rounded border border-gray-600 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-700 hover:text-white transition-colors"
-            onClick={() => handleGift(Number(card.serialNum))}
-          >
-            선물하기
-          </button>
-        </div>
-      )}
+interface UsedGiftCardProps {
+  gifticon: UsedGifticon;
+}
 
-      {isQrScannerOpen && (
-        <QrScanner
-          onClose={() => setIsQrScannerOpen(false)}
-          onScanSuccess={onScanSuccessHandler}
+export function UsedGiftCard({ gifticon }: UsedGiftCardProps) {
+  return (
+    <div className="group block relative overflow-hidden rounded-lg border bg-white transition-all hover:shadow-md cursor-default">
+      <div className="relative aspect-square overflow-hidden">
+        <Image
+          src={gifticon.imageUrl || "/placeholder.svg"}
+          alt={gifticon.title}
+          fill
+          className="object-cover transition-transform group-hover:scale-105"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
-      )}
+        <div className="absolute inset-0 bg-black/30" />
+        <div
+          className="absolute left-2 top-2 rounded px-2 py-1 text-xs text-white font-medium"
+          style={{ backgroundColor: "#dd5851" }}
+        >
+          사용 완료
+        </div>
+      </div>
+      <div className="p-3">
+        <div className="text-xs text-gray-500">{gifticon.brandName}</div>
+        <h3 className="line-clamp-2 text-sm font-medium">{gifticon.title}</h3>
+        <div className="mt-2 text-xs text-gray-500">
+          사용일: {new Date(gifticon.usedAt).toLocaleDateString()}
+        </div>
+      </div>
     </div>
   );
 }

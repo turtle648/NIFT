@@ -21,6 +21,7 @@ public class GiftHistory {
 
     private LocalDateTime createdAt;
     private String mongoId;
+    private Long serialNum;
     private String txHash;
 
     @ManyToOne

@@ -22,7 +22,10 @@ import java.util.Map;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@CrossOrigin(origins = "http://localhost:3000") // 모든 메소드 허용
+@CrossOrigin(origins = {
+        "http://localhost:3000",
+        "https://j12e101.p.ssafy.io"
+}) // 모든 메소드 허용
 @RequestMapping("/auth")
 public class AuthController {
 

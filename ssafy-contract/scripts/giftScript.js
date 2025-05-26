@@ -2,7 +2,7 @@ require("dotenv").config();
 const { ethers } = require("hardhat");
 
 async function main() {
-  const contractAddress = "0x127D23DCAdC78B9438d9B6c46F75E21a647c3AD6"; // 컨트랙트 주소
+  const contractAddress = "0xB234356aE671F22D2bd0E23D843f02D61890b531"; // 컨트랙트 주소
   const userAAddress = "0x4ED78E0a67c2F984D4985D490aAA5bC36340263F"; // 사용자 A
   const userBAddress = "0xe911090F1ca13EE23f3C1eE964c5d4e323987e9f"; // 사용자 B
 
@@ -89,7 +89,7 @@ async function main() {
         console.log("🎁 사용자 B에게 선물 보내는 중...");
         const txGift = await gifticonNFTUserA.giftToFriendByAlias(
           serialNumber,
-          "4001926433"
+          "4100972657"
         );
         const receiptGift = await txGift.wait();
         console.log(

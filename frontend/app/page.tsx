@@ -7,7 +7,6 @@ import { HeroSection } from "@/components/home/hero-section"
 import { FeaturedCategories } from "@/components/home/featured-categories"
 import { RecentlyListed } from "@/components/home/recently-listed"
 import { PopularArticles } from "@/components/home/popular-articles"
-import { NearbyItems } from "@/components/home/nearby-items"
 
 
 export default function Home() {

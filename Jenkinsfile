@@ -1,21 +1,8 @@
-def sendMessage(String msg, String hookUrl) {
-	def payload = groovy.json.JsonOutput.toJson([text: msg])
-	writeFile file: 'payload.json', text: payload
-
-	sh(
-		script: """
-		export HOOK_URL=${hookUrl}
-		curl -X POST -H 'Content-Type: application/json' -d @payload.json \$HOOK_URL
-		""",
-		label: 'Send message'
-	)
-}
-
 pipeline {
 	agent any
 
 	parameters {
-		choice(name: 'ENV', choices: ['dev', 'production'], description: 'Select environment')
+  		choice(name: 'ENV', choices: ['develop', 'master'], description: 'Select deploy environment')
 	}
 
 	stages {
@@ -29,10 +16,11 @@ pipeline {
 					def selectedEnv = params.ENV?.trim()?.toLowerCase()
 
 					// null 이거나 공백이거나 잘못된 값일 경우 자동 분기
-					if (!selectedEnv || !(selectedEnv in ['dev', 'production'])) {
-						selectedEnv = (branch == 'develop') ? 'dev' : 'production'
+					if (!selectedEnv || !(selectedEnv in ['develop', 'master'])) {
+						selectedEnv = (branch == 'develop') ? 'develop' : 'master'
 						echo "🔄 ENV auto-detected as: ${selectedEnv}"
 					} else {
+						selectedEnv = branch
 						echo "✅ ENV manually selected: ${selectedEnv}"
 					}
 
@@ -47,9 +35,9 @@ pipeline {
 
 					def checkCredential = { filePath, name ->
 		                if (!fileExists(filePath)) {
-		                    error "❌ Credential ${name} (${filePath}) is missing."
+		                    error "❌ Credential ${name} is missing."
 		                } else {
-		                    echo "✅ Credential ${name} found at ${filePath}"
+		                    echo "✅ Credential ${name} is available."
 		                }
 	            	}
 
@@ -82,10 +70,10 @@ pipeline {
 				script {
 					def db = readProperties file: '.env'
 
-					def isDev = (env.ENV == 'dev')
+					def isDev = (env.ENV == 'develop')
 
 					def mySQLDbName = isDev ? db.MYSQL_DEV_DATABASE : db.MYSQL_DATABASE
-					def mongoDbName = isDev ? 'nift_dev' : 'nift'
+					def mongoDbName ='nift_db'
 
 					//덮어쓰기
 					db["MYSQL_DATABASE"] = mySQLDbName
@@ -95,9 +83,13 @@ pipeline {
 					db["SPRING_DATASOURCE_URL"] = db["SPRING_DATASOURCE_URL"]
 					.replaceAll(/\/[^\/?]+\?/, "/${mySQLDbName}?")
 
+					// Mongo URI 구성: 아이디, 비번, DB명 모두 치환
+					def mongoUser = db["MONGO_INITDB_ROOT_USERNAME"]
+					def mongoPass = db["MONGO_INITDB_ROOT_PASSWORD"]
+					def mongoHost = "mongo:27017"
+
 					//Spring mongo URI도 치환
-					db["SPRING_DATA_MONGODB_URI"] = db["SPRING_DATA_MONGODB_URI"]
-					.replaceAll(/\/[^\/?]+$/, "/${mongoDbName}")
+					db["SPRING_DATA_MONGODB_URI"] = "mongodb://${mongoUser}:${mongoPass}@${mongoHost}/${mongoDbName}?authSource=admin"
 
 					//바꾼 값들을 반영한 .env 파일 생성
 					def dbContent = db.collect { k, v -> "${k}=${v}"}.join('\n')
@@ -106,74 +98,13 @@ pipeline {
 			}
 		}
 
-		stage('Flyway Check and Migration') {
-		    steps {
-		        script {
-		            if (env.ENV == 'dev') {
-		                def props = readProperties file: '.env'
-		                def workspace = env.WORKSPACE.replaceFirst("^/var/jenkins_home", "/home/ubuntu/jenkins-data")
-		                def migrationPath = "${workspace}/backend/src/main/resources/db/migration"
-		                echo "Migration Path: ${migrationPath}"
-
-		                def baseCmd = """
-		                    docker run --rm \\
-		                      --network shared_backend \\
-		                      -v ${migrationPath}:/flyway/sql \\
-		                      flyway/flyway \\
-		                      -locations=filesystem:/flyway/sql \\
-		                      -url='jdbc:mysql://mysql:3306/${props.MYSQL_DATABASE}?allowPublicKeyRetrieval=true&useSSL=false' \\
-		                      -user=${props.MYSQL_USER} \\
-		                      -password=${props.MYSQL_PASSWORD}
-		                """.stripIndent().trim()
-
-		                // 초기 info 시도
-		                def infoOutput = sh(
-		                    script: "${baseCmd} info -outputType=json 2>&1 || true",
-		                    returnStdout: true
-		                ).trim()
-
-		                def infoJson
-		                try {
-		                    infoJson = readJSON text: infoOutput
-		                } catch (e) {
-		                    if (infoOutput.contains("Detected failed migration") || infoOutput.contains("Validate failed")) {
-		                        echo "🛠️ Validate 실패 감지 → repair 시도"
-		                        sh "${baseCmd} repair"
-		                        infoOutput = sh(script: "${baseCmd} info -outputType=json", returnStdout: true).trim()
-		                        infoJson = readJSON text: infoOutput
-		                    } else {
-		                        error "❌ Flyway info 실패: repair로도 복구할 수 없는 문제\n${infoOutput}"
-		                    }
-		                }
-
-		                // 상태 확인
-		                echo "📦 Flyway info 상태:\n${infoOutput}"
-
-						def needsRepair = infoJson?.migrations?.any {
-							it.state.toLowerCase() in ['failed', 'missing_success', 'outdated', 'ignored']
-						} ?: false
-
-		                if (needsRepair) {
-		                    echo "⚠️ Flyway 상태 이상 감지 → repair + migrate 실행"
-		                    sh "${baseCmd} repair"
-		                }
-
-		                sh "${baseCmd} migrate"
-		            } else {
-		                echo "👌 (master branch) Skipping Flyway Migration."
-		            }
-		        }
-		    }
-		}
-
-
 		stage('Run Docker Compose') {
 			steps {
 				script {
 					try {
-						def composeFile = (env.ENV == 'production') ? 'docker-compose-production.yml' : 'docker-compose-dev.yml'
 						sh 'cp .env ./frontend'
-						sh "docker-compose -f ${composeFile} --env-file .env up -d --build"	
+						sh 'cp .env ./admin'
+						sh "docker-compose --env-file .env up -d --build"	
 						env.IMAGE_BUILD_SUCCESS = "true"
 					}
 					catch(Exception e) {
@@ -186,12 +117,89 @@ pipeline {
 			}
 		}
 
+
+		stage('Flyway Check and Migration') {
+		    steps {
+		        script {
+
+	            	def props = readProperties file: '.env'
+		            def workspace = env.WORKSPACE.replaceFirst("^/var/jenkins_home", "/home/ubuntu/jenkins-data")
+		            def migrationPath = (env.ENV == 'develop') ?
+		               	"${workspace}/backend/src/main/resources/db/migration" :
+		                "${workspace}/backend/src/main/resources/db/migration_master"
+
+  					echo "Migration Path: ${migrationPath}"
+
+					def baseCmd = """
+					    docker run --rm \\
+					      --network shared_backend \\
+					      -v ${migrationPath}:/flyway/sql \\
+					      flyway/flyway \\
+					      -locations=filesystem:/flyway/sql \\
+					      -url='jdbc:mysql://mysql:3306/${props.MYSQL_DATABASE}?allowPublicKeyRetrieval=true&useSSL=false' \\
+					      -user=${props.MYSQL_USER} \\
+					      -password=${props.MYSQL_PASSWORD}
+					""".stripIndent().trim()
+
+					// 초기 info 시도
+					def infoOutput = sh(
+					    script: "${baseCmd} info -outputType=json 2>&1 || true",
+					    returnStdout: true
+					).trim()
+
+					def infoJson
+					try {
+					    infoJson = readJSON text: infoOutput
+					} catch (e) {
+					    if (infoOutput.contains("Detected failed migration") || infoOutput.contains("Validate failed")) {
+					        echo "🛠️ Validate 실패 감지 → repair 시도"
+					        sh "${baseCmd} repair"
+					        infoOutput = sh(script: "${baseCmd} info -outputType=json", returnStdout: true).trim()
+					        infoJson = readJSON text: infoOutput
+					    } else {
+					        error "❌ Flyway info 실패: repair로도 복구할 수 없는 문제\n${infoOutput}"
+					    }
+					}
+
+					// 상태 확인
+					echo "📦 Flyway info 상태:\n${infoOutput}"
+
+					def needsRepair = infoJson?.migrations?.any {
+						it.state.toLowerCase() in ['failed', 'missing_success', 'outdated', 'ignored']
+					} ?: false
+					
+					if (needsRepair) {
+					    echo "⚠️ Flyway 상태 이상 감지 → repair + migrate 실행"
+					    sh "${baseCmd} repair"
+					}
+
+					sh "${baseCmd} migrate"
+
+		        }
+		    }
+		}
+
 	}
 
 	post {
 	    always {
 	        script {
 	            try {
+
+	            	def sendMessage = {String msg -> 
+	            		def payload = groovy.json.JsonOutput.toJson([text: msg])
+						writeFile file: 'payload.json', text: payload
+
+						withCredentials([string(credentialsId: 'MATTERMOST_WEBHOOK', variable: 'MATTERMOST_WEBHOOK')]){
+							sh(
+								script: '''
+									curl -X POST -H 'Content-Type: application/json' -d @payload.json \$MATTERMOST_WEBHOOK
+								''',
+								label: 'Send message'
+							)
+						}
+	            	}
+					
 	                if (env.IMAGE_BUILD_SUCCESS == "true") {
 
 						def message = """
@@ -201,9 +209,7 @@ pipeline {
 						- 툴별 결과:
 						""".stripIndent()
 
-	                    withCredentials([string(credentialsId: 'MATTERMOST_WEBHOOK', variable: 'MATTERMOST_WEBHOOK')]){
-		                    sendMessage(message, MATTERMOST_WEBHOOK)
-	                    }
+						sendMessage(message)
 	                    
 	                } else {
 	                    def message = """
@@ -213,13 +219,14 @@ pipeline {
 	                    - [Jenkins 로그 보기](${env.BUILD_URL})
 	                    """.stripIndent()
 	                    
-	                    withCredentials([string(credentialsId: 'MATTERMOST_WEBHOOK', variable: 'MATTERMOST_WEBHOOK')]){
-		                    sendMessage(message, MATTERMOST_WEBHOOK)
-	                    }
+	                    sendMessage(message)
 	                }
 	                
 	                 // .env 파일 삭제
-                	sh 'rm -f .env.*'
+                	sh 'find . -name ".env" -delete'
+                	//메시지 관련 .json 삭제
+                	sh'rm -f payload.json'
+                	
 	            } catch (e) {
 	                echo "recordIssues() 중 오류 발생: ${e}"
 	            }

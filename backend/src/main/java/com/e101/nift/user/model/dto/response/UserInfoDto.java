@@ -17,6 +17,7 @@ public class UserInfoDto {
 
     private final String walletAddress;
     private final String kakaoId;
+    private int role; // 사용자 0, 매장 관리자 1, 차단된 사용자 2
     @Builder.Default
     private final String message = "본인 정보를 조회했습니다.";
 }

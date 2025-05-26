@@ -1,7 +1,8 @@
-import { ethers } from "ethers";
+import { ethers, TransactionResponse, TransactionReceipt } from "ethers";
 import { GetGifticonResponse } from "./CreateGiftHistory";
 import axios from "axios";
 import exp from "constants";
+import { apiClient } from "./CustomAxios";
 
 // ✅ 환경 변수에서 컨트랙트 주소 가져오기
 export const SSF_CONTRACT_ADDRESS =
@@ -32,6 +33,7 @@ const NFT_ABI = [
   "function isApprovedForAll(address account, address operator) view returns (bool)",
   "function giftToFriend(uint256 serialNumber, address recipient)",
   "function giftToFriendByAlias(uint256 serialNumber, string calldata aliasName)",
+  "function claimGiftByAlias(string calldata aliasName, uint256 serialNumber)",
   "function getPendingGiftsByKakaoId(string) view returns (uint256[])",
 
   "function listForSale(uint256 serialNumber, uint256 price)",
@@ -148,21 +150,22 @@ export const fetchMetadata = async (
 export interface UserNFT {
   brand: string;
   category: string;
-  expirationDate: BigInt;
+  expirationDate: bigint;
   id: number;
   image: string;
   isPending: boolean;
   isSelling: boolean;
-  pendingDate: BigInt;
+  pendingDate: bigint;
   pendingRecipient: string;
   expiryDate: string;
   price: number;
   redeemed: false;
-  redeemedAt: BigInt;
+  redeemedAt: bigint;
   seller: string;
-  serialNum: BigInt;
+  serialNum: bigint;
   title: string;
   tokenId: number;
+  owner?: string;
 }
 
 // ✅ 시리얼 기반으로 사용자 NFT 목록 가져오기
@@ -681,7 +684,7 @@ export async function getSerialInfo(
   return response;
 }
 
-export async function getNFTDetailInfo(serial: BigInt): Promise<any> {
+export async function getNFTDetailInfo(serial: bigint): Promise<any> {
   try {
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
@@ -733,6 +736,7 @@ export async function getNFTDetailInfo(serial: BigInt): Promise<any> {
       serialNum: serial,
       price: Number(price),
       seller: seller,
+      owner: owner,
       isSelling:
         Number(price) > 0 &&
         seller !== "0x0000000000000000000000000000000000000000",
@@ -792,7 +796,7 @@ export async function getGift(kakaoId: string): Promise<UserNFT[]> {
     const signer = await provider.getSigner();
     const contract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, signer);
 
-    const serials: BigInt[] = await contract.getPendingGiftsByKakaoId(kakaoId);
+    const serials: bigint[] = await contract.getPendingGiftsByKakaoId(kakaoId);
     const data: UserNFT[] = await Promise.all(
       serials.map(async (num) => {
         const nft = await getNFTDetailInfo(num);
@@ -801,6 +805,7 @@ export async function getGift(kakaoId: string): Promise<UserNFT[]> {
           category: nft.category,
           expirationDate: nft.expirationDate,
           id: nft.id,
+          owner:nft.owner,
           image: nft.image,
           isPending: nft.isPending,
           isSelling: nft.isSelling,
@@ -825,3 +830,127 @@ export async function getGift(kakaoId: string): Promise<UserNFT[]> {
     return [];
   }
 }
+
+export interface RecieveResponse {
+  success: boolean;
+  txHash?: string;
+  serialNum?: bigint;
+}
+
+export async function receiveNFT(
+  serialNum: bigint,
+  kakaoId: string
+): Promise<RecieveResponse> {
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const fail: RecieveResponse = { success: false };
+  if (!provider) return fail;
+
+  if (!kakaoId || kakaoId.trim().length === 0) {
+    alert("❌ 카카오 ID가 유효하지 않습니다.");
+    return fail;
+  }
+
+  // ✅ 3. serialNum 유효성 확인
+  if (!serialNum || serialNum <= 0n) {
+    alert("❌ 시리얼 넘버가 유효하지 않습니다.");
+    return fail;
+  }
+
+  try {
+    const signer = await provider.getSigner();
+
+    if (!NFT_CONTRACT_ADDRESS || !SSF_CONTRACT_ADDRESS) {
+      console.error("❌ 컨트랙트 주소가 설정되지 않았습니다.");
+      return fail;
+    }
+
+    const nftContract = new ethers.Contract(
+      NFT_CONTRACT_ADDRESS,
+      NFT_ABI,
+      signer
+    );
+
+    console.log("🚀 NFT 선물 받기 트랜잭션 실행 시작...");
+    const tx = await nftContract.claimGiftByAlias(kakaoId, serialNum);
+    console.log("⏳ 트랜잭션 전송됨. 대기 중...");
+    const receipt = await tx.wait();
+    console.log("✅ NFT 선물 받기 완료");
+    console.log("✅ Success:", receipt);
+
+    return {
+      success: true,
+      txHash: tx.hash,
+      serialNum: serialNum,
+    };
+  } catch (error) {
+    console.error("❌ NFT 선물 실패:", error);
+    return fail;
+  }
+}
+
+/**
+ * 트랜잭션 전송: 사용자가 메타마스크 컨펌을 누른 후 실제 트랜잭션을 전송하고
+ * ethers Transaction 객체를 반환합니다.
+ */
+export async function sendReceiveNFT(
+  serialNum: bigint,
+  kakaoId: string
+): Promise<ethers.TransactionResponse | null> {
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  if (!provider) {
+    console.error("Metamask가 설치되지 않음");
+    return null;
+  }
+
+  if (!kakaoId || kakaoId.trim().length === 0) {
+    alert("❌ 카카오 ID가 유효하지 않습니다.");
+    return null;
+  }
+
+  if (!serialNum || serialNum <= 0n) {
+    alert("❌ 시리얼 넘버가 유효하지 않습니다.");
+    return null;
+  }
+
+  try {
+    const signer = await provider.getSigner();
+
+    if (!NFT_CONTRACT_ADDRESS || !SSF_CONTRACT_ADDRESS) {
+      console.error("❌ 컨트랙트 주소가 설정되지 않았습니다.");
+      return null;
+    }
+
+    const nftContract = new ethers.Contract(
+      NFT_CONTRACT_ADDRESS,
+      NFT_ABI,
+      signer
+    );
+
+    console.log("🚀 NFT 선물 받기 트랜잭션 전송 시작...");
+    // sendReceiveNFT에서는 tx.wait()를 호출하지 않고 tx 객체만 반환합니다.
+    const tx = await nftContract.claimGiftByAlias(kakaoId, serialNum);
+    console.log("⏳ 트랜잭션 전송됨. MetaMask 컨펌 완료 후 tx 객체 반환:", tx.hash);
+    return tx;
+  } catch (error) {
+    console.error("❌ NFT 선물 받기 트랜잭션 전송 실패:", error);
+    return null;
+  }
+}
+
+/**
+ * 트랜잭션 확정: 이전에 전송된 Transaction 객체를 받아서
+ * tx.wait()로 블록체인에서 확정되는 것을 기다립니다.
+ */
+export async function confirmReceiveNFT(
+  tx: TransactionResponse // 이제 직접 import한 TransactionResponse 사용
+): Promise<TransactionReceipt | null> {
+  try {
+    console.log("⏳ 트랜잭션 확정 대기 시작...");
+    const receipt = await tx.wait();
+    return receipt;
+  } catch (error) {
+    console.error("❌ NFT 선물 받기 트랜잭션 확정 실패:", error);
+    return null;
+  }
+}
+

@@ -27,6 +27,6 @@ public class User {
     private String gender;
     private String age;
     @Column(nullable = false, columnDefinition = "int default 0")
-    private int role; // 사용자 0, 매장 관리자 1, 전체 관리자 2
+    private int role; // 사용자 0, 매장 관리자 1, 차단된 사용자 2
 
 }

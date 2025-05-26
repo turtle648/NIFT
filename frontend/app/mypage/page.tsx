@@ -24,10 +24,11 @@ import {
   updateUserNickname,
   updateWallet,
   fetchLikedArticles,
+  fetchUsedGifticons
 } from "@/lib/api/mypage";
 import type { ArticleCardProps } from "@/components/article/article-card";
 import { Gift, Clock, Package, Heart, Settings } from "lucide-react";
-import { GiftMemories } from "@/components/mypage/gift-memories";
+import { GiftMemories } from "@/components/mypage/gift-memory";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const ITEMS_PER_PAGE = 6;
@@ -40,6 +41,15 @@ const getKakaoToken = () =>
     ? localStorage.getItem("kakao_access_token")
     : null;
 
+export interface User {
+  profileImage: string;
+  nickname: string;
+  walletAddress: string;
+  balance: number;
+  kakaoId: string;
+  role: number;
+}
+
 export default function MyPage() {
   const router = useRouter();
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -49,22 +59,28 @@ export default function MyPage() {
     walletAddress: "",
     balance: 0,
     kakaoId: "",
+    role: 0
   });
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   const [ssfBalance, setSsfBalance] = useState("0");
   const [copied, setCopied] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [likedArticles, setLikedArticles] = useState<ArticleCardProps[]>([]);
-  const [gift, setGift] = useState<UserNFT[]>([]);
+  const [allLikedArticles, setAllLikedArticles] = useState<ArticleCardProps[]>(
+    []
+  );
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPage, setTotalPage] = useState(1);
   const [availableGiftCards, setAvailableGiftCards] = useState<any[]>([]);
-  const [usedGiftCards, setUsedGiftCards] = useState<any[]>([]);
+  const [calculatedCards, setCalculatedCards] = useState<any[]>([]);
   const [availableCurrentPage, setAvailableCurrentPage] = useState(0);
-  const [usedCurrentPage, setUsedCurrentPage] = useState(0);
+  const [calculatedCurrentPage, setCalculatedCurrentPage] = useState(0);
   const [activeTab, setActiveTab] = useState("gifticons");
   const [giftCardTab, setGiftCardTab] = useState("available");
+  const [usedGiftCards, setUsedGiftCards] = useState<any[]>([]);
+  const [usedCurrentPage, setUsedCurrentPage] = useState(0)
+  const [usedTotalPage, setUsedTotalPage] = useState(1);
+  const [usedTotalCount, setUsedTotalCount] = useState(0);
 
   const calculateDday = (expiry: string): number => {
     const today = new Date();
@@ -164,10 +180,12 @@ export default function MyPage() {
           walletAddress: data.walletAddress,
           balance: data.balance || 0,
           kakaoId: data.kakaoId,
+          role: data.role || 0
         });
         setNickname(data.nickname);
         setWalletAddress(data.walletAddress || null);
         setAccessToken(token);
+        // console.log("사용자 정보 : ", data.role)
       } catch (error) {
         console.error("유저 정보 불러오기 실패:", error);
       }
@@ -189,10 +207,18 @@ export default function MyPage() {
   }, [walletAddress]);
 
   useEffect(() => {
-    const loadLikeArticles = async () => {
+    const loadAllLikedArticles = async () => {
       try {
-        const data = await fetchLikedArticles(currentPage);
-        const transformed = data.likes.map((article: any) => ({
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/secondhand-articles/likes`,
+          {
+            headers: {
+              Authorization: `Bearer ${getAccessToken()}`,
+            },
+          }
+        );
+        const data = await res.json();
+        const transformed = data.map((article: any) => ({
           articleId: article.articleId,
           title: article.title,
           brandName: "",
@@ -203,34 +229,32 @@ export default function MyPage() {
           isLiked: true,
           state: article.state,
         }));
-        setLikedArticles(transformed);
-        setTotalPage(data?.totalPage || 1);
+        setAllLikedArticles(transformed);
+        setTotalPage(Math.ceil(transformed.length / ITEMS_PER_PAGE));
       } catch (error) {
-        console.error("찜한 상품 목록 오류:", error);
+        console.error("전체 찜 목록 가져오기 실패:", error);
       }
     };
-    loadLikeArticles();
-  }, [currentPage]);
+    loadAllLikedArticles();
+  }, []);
 
   useEffect(() => {
     const loadGifticons = async () => {
       if (!user.walletAddress) return;
       try {
         const nfts = await getUserNFTsAsJson(user.walletAddress);
-        const gifts = await getGift(user.kakaoId);
-        setGift(gifts);
         const now = new Date();
         const available: any[] = [];
-        const used: any[] = [];
+        const calculated: any[] = [];
 
         for (const nft of nfts) {
           const expiry = new Date(Number(nft.expirationDate) * 1000);
-          if (nft.redeemed || expiry.getTime() < now.getTime()) used.push(nft);
+          if (nft.redeemed || expiry.getTime() < now.getTime()) calculated.push(nft);
           else available.push(nft);
         }
 
         setAvailableGiftCards(available);
-        setUsedGiftCards(used);
+        setCalculatedCards(calculated);
       } catch (err) {
         console.error("NIFT 불러오기 실패", err);
       }
@@ -238,9 +262,17 @@ export default function MyPage() {
     loadGifticons();
   }, [user.walletAddress]);
 
-  const currentGroup = Math.ceil((currentPage + 1) / PAGE_GROUP_SIZE);
-  const startPage = (currentGroup - 1) * PAGE_GROUP_SIZE;
-  const endPage = Math.min(startPage + PAGE_GROUP_SIZE, totalPage);
+  const [startPage, setStartPage] = useState(0);
+  const [endPage, setEndPage] = useState(PAGE_GROUP_SIZE);
+
+  useEffect(() => {
+    const currentGroup = Math.ceil((currentPage + 1) / PAGE_GROUP_SIZE);
+    const newStartPage = (currentGroup - 1) * PAGE_GROUP_SIZE;
+    const newEndPage = Math.min(newStartPage + PAGE_GROUP_SIZE, totalPage);
+
+    setStartPage(newStartPage);
+    setEndPage(newEndPage);
+  }, [currentPage, totalPage]);
 
   const sidebarItems = [
     { icon: Gift, label: "보유 NIFT", value: "gifticons" },
@@ -250,17 +282,34 @@ export default function MyPage() {
     { icon: Settings, label: "설정", value: "settings" },
   ];
 
-  const handleGifticonUsed = (serialNum: number) => {
+  const handleGifticonCalculated = (serialNum: number) => {
     setAvailableGiftCards((prev) =>
       prev.filter((item) => Number(item.serialNum) !== Number(serialNum))
     );
-    const usedGift = availableGiftCards.find(
+    const calculatedCards = availableGiftCards.find(
       (item) => Number(item.serialNum) === Number(serialNum)
     );
-    if (usedGift) {
-      setUsedGiftCards((prev) => [...prev, { ...usedGift, redeemed: true }]);
+    if (calculatedCards) {
+      setCalculatedCards((prev) => [...prev, { ...calculatedCards, redeemed: true }]);
     }
-  };  
+  };
+
+  useEffect(() => {
+    const fetchUsedGifts = async () => {
+      try {
+        const data = await fetchUsedGifticons(usedCurrentPage, 6); // ✅ 현재 페이지 반영
+        setUsedGiftCards(data.content || []);
+        setUsedTotalPage(data.totalPages || 1); // ✅ 전체 페이지도 저장
+        setUsedTotalCount(data.totalElements || 0); // ✅ 총 개수 저장
+      } catch (err) {
+        console.error("사용 완료 선물 불러오기 실패:", err);
+      }
+    };
+
+    if (accessToken) {
+      fetchUsedGifts();
+    }
+  }, [accessToken, usedCurrentPage]); // ✅ 페이지 변경 감지
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -282,10 +331,13 @@ export default function MyPage() {
                     copyToClipboard={copyToClipboard}
                     connectOrUpdateWallet={connectOrUpdateWallet}
                   />
-                  <UserSidebar
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                  />
+                  {/* ✅ 이 부분만 모바일에서 숨김 */}
+                  <div className="hidden lg:block">
+                    <UserSidebar
+                      activeTab={activeTab}
+                      setActiveTab={setActiveTab}
+                    />
+                  </div>
                 </aside>
                 <div>
                   <Card className="border-none shadow-md">
@@ -312,23 +364,32 @@ export default function MyPage() {
                               보유 NIFT
                             </h2>
                             <p className="mb-6 text-sm text-muted-foreground">
-                              {giftCardTab === "available"
-                                ? `사용 가능한 선물이 ${availableGiftCards.length}개 있어요.`
-                                : `사용 완료된 선물이 ${usedGiftCards.length}개 있어요.`}
+                              {giftCardTab === "available" &&
+                                  `사용 가능한 기프티콘이 ${availableGiftCards.length}개 있어요.`}
+                              {giftCardTab === "used" &&
+                                  `사용 완료된 기프티콘이 ${usedTotalCount}개 있어요.`}
+                              {giftCardTab === "calculated" &&
+                                  `정산 완료된 기프티콘이 ${calculatedCards.length}개 있어요.`}
                             </p>
                           </div>
                           <GiftTab
-                            availableGiftCards={availableGiftCards}
-                            usedGiftCards={usedGiftCards}
-                            ITEMS_PER_PAGE={ITEMS_PER_PAGE}
-                            availableCurrentPage={availableCurrentPage}
-                            setAvailableCurrentPage={setAvailableCurrentPage}
-                            usedCurrentPage={usedCurrentPage}
-                            setUsedCurrentPage={setUsedCurrentPage}
-                            calculateDday={calculateDday}
-                            giftCardTab={giftCardTab}
-                            setGiftCardTab={setGiftCardTab}
-                            onGifticonUsed={handleGifticonUsed}
+                              userRole={user.role}
+                              availableGiftCards={availableGiftCards}
+                              usedGiftCards={usedGiftCards}
+                              calculatedCards={calculatedCards}
+                              ITEMS_PER_PAGE={ITEMS_PER_PAGE}
+                              availableCurrentPage={availableCurrentPage}
+                              setAvailableCurrentPage={setAvailableCurrentPage}
+                              usedCurrentPage={usedCurrentPage}
+                              setUsedCurrentPage={setUsedCurrentPage}
+                              calculatedCurrentPage={calculatedCurrentPage}
+                              setCalculatedCurrentPage={setCalculatedCurrentPage}
+                              calculateDday={calculateDday}
+                              giftCardTab={giftCardTab}
+                              setGiftCardTab={setGiftCardTab}
+                              onGifticonCalculated={handleGifticonCalculated}
+                              usedTotalPage={usedTotalPage}
+                              usedTotalCount={usedTotalCount}
                           />
                         </TabsContent>
 
@@ -345,17 +406,23 @@ export default function MyPage() {
                               소중한 사람들과 주고받은 NIFT 카드를 확인해보세요.
                             </p>
                           </div>
-                          <GiftMemories giftData={gift} />
+                          <GiftMemories
+                            user={user}
+                            availableGiftCards={availableGiftCards}
+                            setAvailableGiftCards={setAvailableGiftCards}
+                          />
                         </TabsContent>
 
                         <TabsContent value="favorites">
                           <WishList
-                            likedArticles={likedArticles}
+                            allLikedArticles={allLikedArticles}
+                            setAllLikedArticles={setAllLikedArticles}
                             currentPage={currentPage}
                             setCurrentPage={setCurrentPage}
                             startPage={startPage}
                             endPage={endPage}
                             totalPage={totalPage}
+                            setTotalPage={setTotalPage}
                           />
                         </TabsContent>
 

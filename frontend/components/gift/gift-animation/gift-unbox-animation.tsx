@@ -22,27 +22,27 @@ export function GiftUnboxAnimation({ gift, onComplete }: GiftUnboxAnimationProps
     // 애니메이션 시퀀스 시작
     const sequence = async () => {
       // 초기 대기
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       // 첫 번째 흔들기 애니메이션
       setAnimationStage("shake1")
-      await new Promise((resolve) => setTimeout(resolve, 1200))
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // 두 번째 흔들기 애니메이션 (더 강하게)
       setAnimationStage("shake2")
-      await new Promise((resolve) => setTimeout(resolve, 1200))
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // 상자가 터지고 빛이 나오는 애니메이션
       setAnimationStage("burst")
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await new Promise((resolve) => setTimeout(resolve, 2200))
 
       // 카드 나타나기 애니메이션 (순서 변경)
       setAnimationStage("reveal-card")
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      await new Promise((resolve) => setTimeout(resolve, 1200))
 
       // 상품 나타나기 애니메이션 (순서 변경)
       setAnimationStage("reveal-item")
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      await new Promise((resolve) => setTimeout(resolve, 1700))
 
       // 완료 및 버튼 표시
       setAnimationStage("complete")
@@ -318,7 +318,7 @@ export function GiftUnboxAnimation({ gift, onComplete }: GiftUnboxAnimationProps
   }
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-black">
+    <div className="relative w-[390px] h-[360px] flex items-center justify-center overflow-hidden">
       {/* 배경 효과 */}
       <motion.div
         className="absolute inset-0 bg-black rounded-lg"
@@ -382,13 +382,18 @@ export function GiftUnboxAnimation({ gift, onComplete }: GiftUnboxAnimationProps
 
       {/* 카드 */}
       <motion.div
-        className="absolute top-1/2 right-1/4 inset-0 flex items-center justify-center"
+        className="absolute top-1/2 right-1/3 transform -translate-x-1/2 -translate-y-[60%]"
         variants={cardAnimation}
         animate={animationStage}
-        style={{ zIndex: 5 }}
+        style={{ zIndex: 4 }}
       >
-        <div className="w-full h-full max-w-[200px] max-h-[150px]">
-          <GiftMemoryCard cardData={gift.cardData} isAccepted={true} showFlipHint={false} />
+        {/* 카드 컨테이너: 원하는 너비, 높이, 배경색, 텍스트, 이미지 등 */}
+        <div className="relative w-[250px] h-[180px] rounded-lg shadow-lg overflow-hidden">
+          <img
+              src="/letter.png"
+              alt="Gift Card Background"
+              className="w-full h-full object-cover"
+            />
         </div>
       </motion.div>
 
@@ -400,7 +405,7 @@ export function GiftUnboxAnimation({ gift, onComplete }: GiftUnboxAnimationProps
         style={{ zIndex: 5 }}
       >
         <div className="bg-white p-3 rounded-lg shadow-md">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-5">
             <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-md">
               <Image
                 src={gift.giftItem?.image || "/placeholder.svg"}

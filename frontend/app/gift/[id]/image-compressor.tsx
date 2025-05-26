@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
+import Image from "next/image";
 
 interface ImageCompressorProps {
   onImageCompressed: (compressedImage: string) => void
@@ -47,7 +48,7 @@ export function ImageCompressor({ onImageCompressed, onCancel }: ImageCompressor
   const compressImage = (imageData: string, imageQuality: number) => {
     setIsCompressing(true)
 
-    const img = new Image()
+    const img = new window.Image()
     img.crossOrigin = "anonymous" // CORS 이슈 방지
 
     img.onload = () => {
@@ -104,7 +105,7 @@ export function ImageCompressor({ onImageCompressed, onCancel }: ImageCompressor
       }
     }
 
-    img.onerror = (error) => {
+    img.onerror = (error: Event | string) => {
       console.error("이미지 로드 오류:", error)
       alert("이미지를 불러오는 중 오류가 발생했습니다.")
       setIsCompressing(false)
@@ -152,14 +153,17 @@ export function ImageCompressor({ onImageCompressed, onCancel }: ImageCompressor
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium mb-2">원본 이미지</p>
-              <div className="aspect-square bg-gray-100 rounded-md overflow-hidden">
-                <img
+              <div className="aspect-square bg-gray-100 rounded-md overflow-hidden relative">
+                <Image
                   src={originalImage || "/placeholder.svg"}
                   alt="Original"
-                  className="w-full h-full object-contain"
+                  fill
+                  className="object-contain"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">크기: {formatFileSize(originalSize)}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                크기: {formatFileSize(originalSize)}
+              </p>
             </div>
             <div>
               <p className="text-sm font-medium mb-2">최적화된 이미지</p>
@@ -169,11 +173,14 @@ export function ImageCompressor({ onImageCompressed, onCancel }: ImageCompressor
                     <div className="animate-spin h-8 w-8 border-2 border-primary rounded-full border-t-transparent"></div>
                   </div>
                 ) : compressedImage ? (
-                  <img
-                    src={compressedImage || "/placeholder.svg"}
-                    alt="Compressed"
-                    className="w-full h-full object-contain"
-                  />
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={compressedImage || "/placeholder.svg"}
+                      alt="Compressed"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
                 ) : null}
               </div>
               <p className="text-xs text-gray-500 mt-1">

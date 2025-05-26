@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -81,5 +82,24 @@ public class LikeServiceImpl implements LikeService{
                 like.getArticle().getCurrentPrice(),
                 like.getArticle().getState()
         ));
+    }
+
+    @Override
+    public List<ArticleLikeDTO> getAllLikedArticles(Long userId) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        List<Like> likes = likeRepository.findByUser(user);
+
+        return likes.stream()
+                .map(like -> new ArticleLikeDTO(
+                        like.getArticle().getArticleId(),
+                        like.getArticle().getTitle(),
+                        like.getArticle().getCountLikes(),
+                        like.getArticle().getImageUrl(),
+                        like.getArticle().getCurrentPrice(),
+                        like.getArticle().getState()
+                ))
+                .toList();
     }
 }

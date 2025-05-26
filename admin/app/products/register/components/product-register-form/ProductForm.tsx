@@ -1,8 +1,7 @@
-// 리팩토링된 구조
-// components/product-register-form/ProductForm.tsx
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,12 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Upload } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { uploadImageToPinata, uploadMetadataToPinata } from "@/lib/utils";
 
 export default function ProductForm() {
   const router = useRouter();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -103,11 +100,6 @@ export default function ProductForm() {
         !formData.brand ||
         !formData.gifticonId
       ) {
-        toast({
-          title: "입력 오류",
-          description: "필수 항목을 입력해주세요.",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -116,7 +108,7 @@ export default function ProductForm() {
       if (!file) throw new Error("이미지 파일이 없습니다.");
 
       const imageCid = await uploadImageToPinata(file);
-      const imageUrl = `ipfs://${imageCid}`;
+      const imageUrl = `https://ipfs.io/ipfs/${imageCid}`;
 
       const metadata = {
         name: formData.name,
@@ -166,18 +158,12 @@ export default function ProductForm() {
 
       if (!res.ok) throw new Error("DB 저장 실패");
 
-      toast({
-        title: "상품 등록 완료",
-        description: "NFT 기프티콘이 등록되었습니다.",
-      });
+      alert("🎉 상품이 성공적으로 등록되었습니다!");
+
       router.push("/");
     } catch (error) {
       console.error("등록 오류:", error);
-      toast({
-        title: "등록 실패",
-        description: "오류가 발생했습니다.",
-        variant: "destructive",
-      });
+      alert("상품 등록에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }
@@ -290,11 +276,14 @@ export default function ProductForm() {
               <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center text-gray-500">
                 {imagePreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={imagePreview || "/placeholder.svg"}
-                    alt="미리보기"
-                    className="w-full h-full object-cover rounded-md"
-                  />
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={imagePreview || "/placeholder.svg"}
+                      alt="미리보기"
+                      fill
+                      className="object-cover rounded-md"
+                    />
+                  </div>
                 ) : (
                   <Upload className="w-8 h-8" />
                 )}

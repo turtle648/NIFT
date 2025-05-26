@@ -19,9 +19,9 @@ import { ArticlePrice } from "@/components/articleDetail/ArticlePrice";
 import { ArticleLikeAndShare } from "@/components/articleDetail/ArticleLikeAndShare";
 import { ArticlePurchaseDialog } from "@/components/articleDetail/ArticlePurchaseDialog";
 import { ArticleSellerTab } from "@/components/articleDetail/ArticleSellerTab";
-import { ArticleSimilarList } from "@/components/articleDetail/ArticleSimilarList";
 import { DeleteArticleButton } from "@/components/articleDetail/DeleteArticleButton";
 import { postPurchaseHash, PurchaseParams } from "@/lib/api/purchase";
+import { PopularArticles } from "@/components/home/popular-articles";
 
 type ArticleDetail = {
   articleId: number;
@@ -42,6 +42,7 @@ type ArticleDetail = {
   isLiked: boolean;
   userNickName: string;
   profileImage: string;
+  sellerTxs: number;
 };
 
 export default function ArticlePage({ params }: { params: { id: string } }) {
@@ -61,6 +62,8 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
   const [countLikes, setLikeCount] = useState<number>(0);
   const { isLoading, setIsLoading } = useLoading();
   const router = useRouter();
+  const [isPossible, setIsPossible] = useState<boolean>(true);
+  const [isSold, setIsSold] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchArticle = async () => {
@@ -81,6 +84,9 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
         setArticle(data);
         setIsLiked(data.liked);
         setLikeCount(data.countLikes);
+        setIsPossible(data.possible);
+        setIsSold(data.sold);
+        // console.log("접속자의 거래 참여 상태 : ", data.possible);
       } catch (error) {
         console.error("Error fetching article:", error);
       } finally {
@@ -115,34 +121,40 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
     }
   };
 
-  // 유저 지갑 주소 확인 함수 (수정됨)
   async function checkWalletValidation(): Promise<
-    | "ok"
-    | "login"
-    | "no-wallet"
-    | "no-metamask"
-    | "no-account"
-    | "mismatch"
-    | "error"
+    "ok" | "login" | "no-metamask" | "no-account" | "mismatch" | "error"
   > {
     const token = localStorage.getItem("access_token");
     if (!token) return "login";
 
-    if (!article?.walletAddress) return "no-wallet";
-
     if (!window.ethereum) return "no-metamask";
 
     try {
-      const accounts = await window.ethereum.request({
-        method: "eth_accounts", // 연결 요청 없이 현재 연결 상태만 확인
-      });
-
+      // 1. 메타마스크 연결된 계정 가져오기
+      let accounts = await window.ethereum.request({ method: "eth_accounts" });
+      if (!accounts || accounts.length === 0) {
+        accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
+      }
       if (!accounts || accounts.length === 0) return "no-account";
 
       const metamaskAddress = accounts[0].toLowerCase();
-      const dbAddress = article.walletAddress.toLowerCase();
 
-      if (metamaskAddress !== dbAddress) return "mismatch";
+      // 2. 내 유저 정보에서 walletAddress 가져오기
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("유저 정보 조회 실패");
+
+      const me = await res.json();
+      const myWalletAddress = me.walletAddress?.toLowerCase();
+
+      if (!myWalletAddress) return "mismatch"; // 유저 정보엔 지갑 주소 없는데 메타마스크 연결돼 있음
+
+      // 3. 메타마스크와 DB 지갑 주소 비교
+      if (metamaskAddress !== myWalletAddress) return "mismatch";
 
       return "ok";
     } catch (err) {
@@ -159,19 +171,8 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
         alert("로그인이 필요합니다.");
         router.push("/signin");
         break;
-      case "no-wallet":
-        if (
-          window.confirm(
-            "지갑이 연결되어 있지 않습니다. 연결 페이지로 이동할까요?"
-          )
-        ) {
-          router.push("/mypage");
-        }
-        break;
       case "no-metamask":
-        alert(
-          "메타마스크가 설치되어 있지 않습니다. 설치 후 다시 시도해주세요."
-        );
+        alert("메타마스크가 설치되어 있지 않습니다.");
         break;
       case "no-account":
         alert("메타마스크 계정이 연결되어 있지 않습니다.");
@@ -183,7 +184,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
         router.push("/mypage");
         break;
       case "error":
-        alert("알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        alert("알 수 없는 오류가 발생했습니다.");
         break;
       case "ok":
         onSuccess();
@@ -276,6 +277,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
                 createAt={article.createAt}
                 viewCnt={article.viewCnt}
                 countLikes={countLikes}
+                brandName={article.brandName}
               />
 
               <ArticlePrice
@@ -284,6 +286,11 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
               />
 
               <div className="mt-auto">
+              {!isPossible && (
+                <p className="text-sm text-muted-foreground mb-2">
+                  판매자는 거래에 참여할 수 없습니다.
+                </p>
+              )}
                 <div className="grid grid-cols-12 gap-1">
                   <div className="col-span-5">
                     {showPurchaseDialog && (
@@ -307,7 +314,8 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
                       <Button
                         className="h-12 w-full px-[16px]"
                         size="lg"
-                        onClick={handleClickBuy} // 이렇게만!
+                        onClick={handleClickBuy}
+                        disabled={!isPossible || isSold}
                       >
                         <ShoppingCart className="mr-1 h-4 w-4" />
                         구매하기
@@ -321,6 +329,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
                       className="h-12 w-full px-[16px]"
                       size="lg"
                       onClick={handleClickGift} // 이제 조건 검사 잘됨!
+                      disabled={!isPossible || isSold}
                     >
                       <Gift className="mr-1 h-4 w-4" />
                       선물하기
@@ -361,16 +370,17 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
                 className="mt-6 rounded-lg bg-white p-6 shadow-sm"
               >
                 <ArticleSellerTab
+                  userId={article.userId}
                   userNickName={article.userNickName}
                   profileImage={article.profileImage}
-                  viewCnt={article.viewCnt}
+                  sellerTxs={article.sellerTxs}
                 />
               </TabsContent>
             </Tabs>
           </div>
-
-          <ArticleSimilarList />
         </div>
+        {/* <ArticleSimilarList /> */}
+        <PopularArticles />
       </main>
       <Footer />
     </div>

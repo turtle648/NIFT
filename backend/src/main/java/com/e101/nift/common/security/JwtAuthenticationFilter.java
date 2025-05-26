@@ -4,14 +4,11 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Bean;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -30,6 +27,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws IOException {
         try {
+            log.info("요청 경로: {}", request.getRequestURI());
+
             String path = request.getRequestURI();
 
             if (path.startsWith("/api/admin/")) {
@@ -38,6 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             String token = resolveToken(request);
+            log.info("[JwtAuthenticationFilter] token {}", token);
             if (token != null) {
                 if (!jwtTokenProvider.validateToken(token)) {
                     throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
@@ -54,6 +54,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     log.error("userDetails is not CustomUserDetails. Authentication not set.");
                 }
             }
+
+            log.info("[JwtAuthenticationFilter] 필터 통과 후 다음 필터/서블릿으로 전달됨");
             filterChain.doFilter(request, response);
 
         } catch (UsernameNotFoundException | IllegalArgumentException e) {
